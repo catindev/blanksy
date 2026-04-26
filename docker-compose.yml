@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: ${PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL:-postgres://blanksy:blanksy@db:5432/blanksy}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      ACCESS_TOKEN_COOKIE_NAME: ${ACCESS_TOKEN_COOKIE_NAME:-blanksy_access}
+      NODE_ENV: ${NODE_ENV:-development}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: blanksy
+      POSTGRES_USER: blanksy
+      POSTGRES_PASSWORD: blanksy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blanksy -d blanksy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - blanksy_pgdata:/var/lib/postgresql/data
+
+volumes:
+  blanksy_pgdata:
