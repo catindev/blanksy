@@ -1,5 +1,22 @@
 const { getPool } = require('../db/pool');
 
+
+async function withTransaction(callback) {
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 function mapBlankRow(row) {
   if (!row) {
     return null;
@@ -48,6 +65,33 @@ async function createBlank({ path, title, signature, body, description, coverIma
   ]);
 
   return mapBlankRow(result.rows[0]);
+}
+
+
+async function createBlankWithAccessToken(blankInput, accessTokenHash, label = 'owner') {
+  return withTransaction(async (client) => {
+    const result = await client.query(`
+      INSERT INTO blanks (path, title, signature, body, description, cover_image_url, expires_at)
+      VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7)
+      RETURNING *
+    `, [
+      blankInput.path,
+      blankInput.title,
+      blankInput.signature || null,
+      JSON.stringify(blankInput.body),
+      blankInput.description || null,
+      blankInput.coverImageUrl || null,
+      blankInput.expiresAt,
+    ]);
+
+    const blank = mapBlankRow(result.rows[0]);
+    await client.query(`
+      INSERT INTO blank_access_tokens (blank_id, token_hash, label)
+      VALUES ($1, $2, $3)
+    `, [blank.id, accessTokenHash, label]);
+
+    return blank;
+  });
 }
 
 async function getBlankByPath(path) {
@@ -115,6 +159,42 @@ async function createBlankVersion(blank) {
   ]);
 }
 
+
+async function updateBlankWithVersion(existingBlank, nextBlank) {
+  return withTransaction(async (client) => {
+    await client.query(`
+      INSERT INTO blank_versions (blank_id, title, signature, body)
+      VALUES ($1, $2, $3, $4::jsonb)
+    `, [
+      existingBlank.id,
+      existingBlank.title,
+      existingBlank.signature || null,
+      JSON.stringify(existingBlank.body),
+    ]);
+
+    const result = await client.query(`
+      UPDATE blanks
+      SET title = $2,
+          signature = $3,
+          body = $4::jsonb,
+          description = $5,
+          cover_image_url = $6,
+          updated_at = now()
+      WHERE id = $1
+      RETURNING *
+    `, [
+      existingBlank.id,
+      nextBlank.title,
+      nextBlank.signature || null,
+      JSON.stringify(nextBlank.body),
+      nextBlank.description || null,
+      nextBlank.coverImageUrl || null,
+    ]);
+
+    return mapBlankRow(result.rows[0]);
+  });
+}
+
 async function createAccessToken(blankId, tokenHash, label = null) {
   const pool = getPool();
   const result = await pool.query(`
@@ -124,6 +204,31 @@ async function createAccessToken(blankId, tokenHash, label = null) {
   `, [blankId, tokenHash, label]);
 
   return result.rows[0];
+}
+
+async function createAccessTokenWithLimit(blankId, tokenHash, label, maxActiveTokens) {
+  return withTransaction(async (client) => {
+    await client.query('SELECT id FROM blanks WHERE id = $1 FOR UPDATE', [blankId]);
+
+    const countResult = await client.query(`
+      SELECT COUNT(*)::int AS active_count
+      FROM blank_access_tokens
+      WHERE blank_id = $1
+        AND revoked_at IS NULL
+    `, [blankId]);
+
+    if (countResult.rows[0].active_count >= maxActiveTokens) {
+      return null;
+    }
+
+    const result = await client.query(`
+      INSERT INTO blank_access_tokens (blank_id, token_hash, label)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `, [blankId, tokenHash, label || null]);
+
+    return result.rows[0];
+  });
 }
 
 async function getBlankByPathAndTokenHash(path, tokenHash) {
@@ -187,12 +292,15 @@ async function cleanupExpiredBlanks() {
 
 module.exports = {
   isPathTaken,
+  createBlankWithAccessToken,
+  updateBlankWithVersion,
   createBlank,
   getBlankByPath,
   getBlankById,
   updateBlank,
   createBlankVersion,
   createAccessToken,
+  createAccessTokenWithLimit,
   getBlankByPathAndTokenHash,
   getAccessTokenByBlankIdAndHash,
   touchAccessToken,

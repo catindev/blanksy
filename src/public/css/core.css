@@ -1,22 +1,58 @@
+/* ============================================================
+   Blanksy — core.css  v1.2.0
+
+   Sections:
+     1. Design Tokens
+     2. Reset & Base
+     3. Layout
+     4. Article Typography  (read + edit, shared)
+     5. Editor Overrides    (contenteditable specifics)
+     6. Controls            (fixed buttons panel)
+     7. Status Panel        (publish success, errors)
+     8. Toolbars            (text toolbar, block toolbar, link prompt)
+     9. Media Figures       (images, videos)
+    10. Diagrams            (read-only render; editor UI removed in 1.1.x)
+    11. Responsive
+   ============================================================ */
+
+
+/* ── 1. Design Tokens ──────────────────────────────────────── */
+
 :root {
-  --bs-bg: #ffffff;
-  --bs-surface: #ffffff;
-  --bs-text: #222222;
-  --bs-muted: #8b949e;
-  --bs-line: #dfddd7;
-  --bs-strong-line: #3d3d3d;
-  --bs-toolbar: #2f2d2a;
-  --bs-toolbar-text: #fffaf4;
-  --bs-shadow: 0 16px 40px rgba(34, 34, 34, 0.08);
-  --bs-icon-sprite: url('/static/icons_2x.png');
+  /* Colours */
+  --bs-bg:            #fff;
+  --bs-text:          #2f3033;
+  --bs-muted:         #7f8994;
+  --bs-soft:          #aaa49c;
+  --bs-line:          #dedbd4;
+  --bs-line-strong:   #343434;
+
+  /* Toolbar */
+  --bs-toolbar-bg:    #2b2a27;
+  --bs-toolbar-fg:    #fffaf4;
+  --bs-toolbar-hover: rgba(255, 255, 255, 0.16);
+  --bs-toolbar-active:rgba(255, 255, 255, 0.28);
+
+  /* Typography */
+  --bs-font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --bs-font-text: Georgia, "Times New Roman", serif;
+  --bs-font-mono: "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* Spacing */
+  --bs-block-gap:  26px;
+  --bs-figure-gap: 32px;
+
+  /* Shadows */
+  --bs-shadow:         0 16px 42px rgba(34, 34, 34, 0.10);
+  --bs-shadow-toolbar: 0 14px 44px rgba(0,   0,   0,   0.24);
 }
 
-* {
-  box-sizing: border-box;
-}
 
-html,
-body {
+/* ── 2. Reset & Base ───────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
   margin: 0;
   padding: 0;
   min-height: 100%;
@@ -25,434 +61,491 @@ body {
 }
 
 body {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--bs-font-text);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.12em;
 }
 
-.bs_page_wrap {
-  width: 100%;
-}
+
+/* ── 3. Layout ─────────────────────────────────────────────── */
+
+.bs_page_wrap { width: 100%; }
 
 .bs_page {
-  max-width: 1040px;
+  max-width: 760px;
   margin: 0 auto;
-  padding: 56px 36px 72px;
-  position: relative;
+  padding: 52px 24px 84px;
+  position: relative;       /* containing block for absolute toolbars */
 }
 
-.bs_blank_host {
-  min-height: 18rem;
-}
+.bs_blank { width: 100%; }
 
-.bs_blank {
-  width: 100%;
-}
+/* min-height only in editor mode so the click target exists */
+.bs_blank_host { }
+.bs_blank_host--editor { min-height: 18rem; }
 
+
+/* ── 4. Article Typography ─────────────────────────────────── */
+
+/* Title */
 .bs_blank_header h1,
 .bs_editor h1[data-role="title"] {
   margin: 0;
+  font-family: var(--bs-font-ui);
+  font-size: clamp(2.7rem, 6vw, 4rem);
+  font-weight: 750;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
   color: var(--bs-text);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: clamp(3rem, 6vw, 4.75rem);
-  line-height: 0.98;
-  letter-spacing: -0.055em;
-  font-weight: 800;
 }
 
+/* Byline / signature */
 .bs_blank_header address,
 .bs_editor address[data-role="signature"] {
-  margin: 18px 0 40px;
+  margin: 16px 0 38px;
   font-style: normal;
+  font-family: var(--bs-font-ui);
+  font-size: clamp(1rem, 2vw, 1.22rem);
+  font-weight: 650;
   color: var(--bs-muted);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: clamp(1.1rem, 2vw, 1.35rem);
-  font-weight: 600;
 }
 
 .bs_blank_header address {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
 }
 
-.bs_meta_separator {
-  color: var(--bs-muted);
-}
+.bs_meta_separator { margin: 0 2px; color: #a4abb3; }
 
+/* Body text */
 .bs_blank_content,
 .bs_editor {
-  font-size: clamp(1.55rem, 2.1vw, 2rem);
+  font-family: var(--bs-font-text);
+  font-size: clamp(1.35rem, 2vw, 1.72rem);
   line-height: 1.58;
 }
 
-.bs_blank_content p,
-.bs_editor p,
-.bs_editor blockquote,
-.bs_blank_content blockquote,
-.bs_editor h2,
-.bs_editor h3,
-.bs_blank_content h2,
-.bs_blank_content h3,
-.bs_blank_content ul,
-.bs_blank_content ol,
-.bs_editor ul,
-.bs_editor ol,
-.bs_blank_content pre,
-.bs_editor pre {
-  margin: 0 0 28px;
+/* Block margins — all content blocks share the same bottom gap */
+.bs_blank_content p,   .bs_editor p,
+.bs_blank_content h2,  .bs_editor h2,
+.bs_blank_content h3,  .bs_editor h3,
+.bs_blank_content blockquote, .bs_editor blockquote,
+.bs_blank_content ul,  .bs_editor ul,
+.bs_blank_content ol,  .bs_editor ol,
+.bs_blank_content pre, .bs_editor pre {
+  margin: 0 0 var(--bs-block-gap);
 }
 
-.bs_blank_content h2,
-.bs_editor h2 {
-  font-size: 2.3rem;
-  line-height: 1.2;
-}
+/* Headings */
+.bs_blank_content h2, .bs_editor h2 { font-size: 1.55em; line-height: 1.2;  font-weight: 700; }
+.bs_blank_content h3, .bs_editor h3 { font-size: 1.22em; line-height: 1.25; font-weight: 700; }
 
-.bs_blank_content h3,
-.bs_editor h3 {
-  font-size: 1.72rem;
-  line-height: 1.24;
-}
-
+/* Blockquote */
 .bs_blank_content blockquote,
 .bs_editor blockquote {
   padding-left: 18px;
-  border-left: 6px solid #ddd7ca;
-  color: #5f5646;
+  border-left: 3px solid #d7d1c5;
+  color: #5e574e;
 }
 
+/* Code block */
 .bs_blank_content pre,
 .bs_editor pre {
-  padding: 18px 20px;
-  border-radius: 16px;
+  padding: 16px 18px;
+  border-radius: 12px;
   background: #f6f6f6;
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.6;
   overflow-x: auto;
 }
 
 .bs_blank_content code,
 .bs_editor code {
-  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  font-family: var(--bs-font-mono);
   font-size: 0.9em;
 }
 
+/* Lists */
+.bs_blank_content ul, .bs_blank_content ol,
+.bs_editor ul, .bs_editor ol { padding-left: 30px; }
+
+/* Divider */
+.bs_blank hr, .bs_editor hr {
+  border: 0;
+  border-top: 1px solid var(--bs-line);
+  margin: 30px 0;
+}
+
+
+/* ── 5. Editor Overrides ───────────────────────────────────── */
+
 .bs_editor {
   outline: none;
+  caret-color: #222;
 }
 
-.bs_editor [contenteditable="false"] {
-  cursor: default;
-}
+/* Non-editable islands inside the editor (figure wrappers, etc.) */
+.bs_editor [contenteditable="false"] { cursor: default; }
 
+/* Kill default outlines on editable elements */
 .bs_editor h1,
 .bs_editor address,
 .bs_editor p,
 .bs_editor h2,
 .bs_editor h3,
 .bs_editor blockquote,
-.bs_editor figcaption {
-  outline: none;
-}
+.bs_editor figcaption { outline: none; }
 
+/* Placeholder pseudo-elements */
 .bs_editor [data-placeholder],
-.bs_editor figcaption[data-placeholder] {
-  position: relative;
-}
+.bs_editor figcaption[data-placeholder] { position: relative; }
 
 .bs_editor .empty::before {
   content: attr(data-placeholder);
-  color: #a9a39a;
+  color: var(--bs-soft);
   pointer-events: none;
   position: absolute;
   left: 0;
+  font-weight: inherit;
+  white-space: pre;
 }
 
+/* Title and signature placeholders are inline (not absolute) */
 .bs_editor h1.empty::before,
-.bs_editor address.empty::before {
-  position: static;
-}
+.bs_editor address.empty::before { position: static; }
 
+/* Media-prompt paragraph has a slightly dimmer placeholder */
+.bs_editor p[data-media-prompt="true"]::before { color: #9f9991; }
+
+
+/* ── 6. Controls ───────────────────────────────────────────── */
+
+/* Fixed panel in the top-right corner */
 .bs_blank_buttons {
   position: fixed;
-  top: 44px;
-  right: max(28px, calc(50vw - 760px));
+  top: 42px;
+  right: max(24px, calc(50vw - 570px));
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 12px;
+  gap: 10px;
   z-index: 20;
+  max-width: 300px;
 }
 
+/* Base pill button */
 .button {
-  border: 3px solid var(--bs-strong-line);
+  border: 2px solid var(--bs-line-strong);
   border-radius: 999px;
-  background: #ffffff;
-  color: #111111;
-  padding: 13px 26px;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 1.04rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  background: var(--bs-bg);
+  color: #111;
+  padding: 9px 19px;
+  font-family: var(--bs-font-ui);
+  font-size: 0.9rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
   cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.1s;
 }
+.button:hover { transform: translateY(-1px); }
+.button[hidden] { display: none; }
 
-.button:hover {
-  transform: translateY(-1px);
-}
+/* Save button gets a filled black treatment to stand out */
+.save_button { background: var(--bs-line-strong); color: #fff; }
+.save_button:hover { background: #1a1a1a; }
 
-.button[hidden] {
-  display: none;
-}
+
+/* ── 7. Status Panel ───────────────────────────────────────── */
 
 .bs_status_panel,
 .error_msg {
-  width: min(320px, 86vw);
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: #ffffff;
+  width: min(300px, 86vw);
+  padding: 13px 15px;
+  border-radius: 14px;
+  background: var(--bs-bg);
   border: 1px solid #f0efeb;
   box-shadow: var(--bs-shadow);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 0.95rem;
+  font-family: var(--bs-font-ui);
+  font-size: 0.9rem;
   line-height: 1.45;
 }
+.bs_status_panel[hidden], .error_msg[hidden] { display: none; }
+.bs_status_panel p { margin: 7px 0 0; }
 
-.bs_status_panel[hidden],
-.error_msg[hidden] {
-  display: none;
-}
+.bs_status_title   { display: block; font-weight: 750; margin-bottom: 2px; }
+.bs_status_hint    { color: var(--bs-muted); font-size: 0.84rem; }
+.bs_status_hint--accent { color: #7a4200; font-weight: 600; }
 
-.bs_status_panel input {
-  width: 100%;
-  margin: 6px 0 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--bs-line);
-  border-radius: 12px;
-  font-size: 0.88rem;
-  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
-}
+.error_msg { color: #8c1d28; }
 
-.bs_status_panel label,
-.bs_status_title {
-  display: block;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
+.bs_clipboard_hint         { color: #8c1d28; font-size: 0.82rem; margin-top: 6px; }
+.bs_clipboard_hint[hidden] { display: none; }
 
-.error_msg {
-  color: #8c1d28;
-}
-
-.bs_tooltip,
-.bs_blocks {
-  position: absolute;
+/* URL rows inside publish-success panel */
+.bs_url_row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: var(--bs-toolbar);
-  color: var(--bs-toolbar-text);
-  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.22);
-  transform: translateX(-50%);
-  z-index: 30;
+  gap: 6px;
+  margin: 5px 0 0;
+}
+.bs_url_row .bs_status_url { margin: 0; flex: 1; min-width: 0; }
+
+.bs_status_url {
+  display: block;
+  width: 100%;
+  margin: 5px 0 0;
+  padding: 7px 10px;
+  border: 1px solid var(--bs-line);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-family: var(--bs-font-mono);
+  color: var(--bs-text);
+  background: #fafaf8;
+  cursor: text;
 }
 
-.bs_blocks {
-  transform: none;
-  left: 0;
+/* Copy-to-clipboard icon button inside url rows */
+.bs_copy_url_btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--bs-line);
+  border-radius: 7px;
+  background: var(--bs-bg);
+  color: var(--bs-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
+.bs_copy_url_btn:hover      { background: #f5f5f3; color: var(--bs-text); border-color: #bbb; }
+.bs_copy_url_btn--done      { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+.bs_copy_url_btn svg        { display: block; }
+
+
+/* ── 8. Toolbars ───────────────────────────────────────────── */
+
+/* Shared positioning context */
+.bs_tooltip,
+.bs_blocks,
+.bs_link_tooltip { position: absolute; z-index: 40; }
+
+/* Shared dark-pill shell */
+.bs_tooltip,
+.bs_blocks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: var(--bs-toolbar-bg);
+  color: var(--bs-toolbar-fg);
+  box-shadow: var(--bs-shadow-toolbar);
+}
+
+/* Text toolbar is horizontally centered on the selection */
+.bs_tooltip { transform: translateX(-50%); }
 
 .bs_tooltip[hidden],
 .bs_blocks[hidden],
-.bs_link_tooltip[hidden] {
-  display: none;
-}
+.bs_link_tooltip[hidden] { display: none; }
 
+/* Individual tool button */
 .bs_tool_button {
   border: 0;
   background: transparent;
   color: inherit;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-family: var(--bs-font-ui);
+  font-size: 0.86rem;
+  font-weight: 750;
   cursor: pointer;
-  padding: 6px 8px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  min-height: 30px;
+  line-height: 1;
+  transition: background 0.1s;
 }
+.bs_tool_button:hover,
+.bs_tool_button:focus          { background: var(--bs-toolbar-hover); outline: none; }
+.bs_tool_button.bs_tool_active { background: var(--bs-toolbar-active); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.5); }
 
-.bs_button_label {
-  display: inline-block;
-  min-width: 18px;
-}
+.bs_tool_button svg    { display: block; flex-shrink: 0; }
+.bs_button_label       { display: inline-block; font-size: 0.9rem; font-weight: 800; letter-spacing: -0.01em; }
 
-.bs_has_icons .bs_icon_button {
-  position: relative;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-}
-
-.bs_has_icons .bs_icon_button .bs_button_label {
-  position: absolute;
+/* Visual separator between groups within a toolbar */
+.bs_toolbar_sep {
   width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 2px;
+  align-self: center;
+}
+
+/* Block-toolbar buttons are slightly larger than text-toolbar buttons */
+.bs_block_btn { min-width: 34px; min-height: 34px; padding: 6px 8px; }
+
+/* Link prompt — inline URL input that appears below the text toolbar */
+.bs_link_prompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(420px, calc(100vw - 24px));
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--bs-toolbar-bg);
+  color: var(--bs-toolbar-fg);
+  box-shadow: var(--bs-shadow-toolbar);
+}
+.bs_link_prompt input {
+  flex: 1;
+  min-width: 0;
   border: 0;
+  outline: none;
+  background: transparent;
+  color: #fff;
+  font-family: var(--bs-font-ui);
+  font-size: 1rem;
+}
+.bs_link_prompt input::placeholder { color: rgba(255, 255, 255, 0.55); }
+.bs_link_prompt button {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
 }
 
-.bs_has_icons .bs_icon_button::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: var(--bs-icon-sprite);
-  background-repeat: no-repeat;
-  background-size: 28px 341px;
-  background-position-x: center;
-}
 
-.bs_has_icons .bs_icon_button_bold::before {
-  background-position-y: 0;
-}
+/* ── 9. Media Figures ──────────────────────────────────────── */
 
-.bs_has_icons .bs_icon_button_italic::before {
-  background-position-y: -43px;
-}
-
-.bs_has_icons .bs_icon_button_link::before {
-  background-position-y: -85px;
-}
-
-.bs_has_icons .bs_icon_button_heading::before {
-  background-position-y: -127px;
-}
-
-.bs_has_icons .bs_icon_button_subheading::before {
-  background-position-y: -170px;
-}
-
-.bs_has_icons .bs_icon_button_quote::before {
-  background-position-y: -213px;
-}
-
-.bs_has_icons .bs_icon_button_media::before {
-  background-position-y: -298px;
-}
-
-.bs_has_icons .bs_icon_button_divider::before {
-  background-position-y: -340px;
-}
-
-.bs_blank figure {
-  margin: 0 0 34px;
+.bs_blank figure,
+.bs_editor figure {
+  margin: 0 0 var(--bs-figure-gap);
+  max-width: 100%;
 }
 
 .figure_wrapper {
-  border-radius: 20px;
+  border-radius: 14px;
   overflow: hidden;
   background: #f3f3f3;
 }
-
 .figure_wrapper img {
   display: block;
   width: 100%;
   height: auto;
+  max-width: 100%;
 }
 
+/* 16:9 video iframe */
 .iframe_wrap {
   position: relative;
   width: 100%;
   padding-top: 56.25%;
-  background: #111111;
+  background: #111;
 }
+.iframe_helper            { position: absolute; inset: 0; }
+.iframe_helper iframe     { width: 100%; height: 100%; border: 0; }
 
-.iframe_helper {
-  position: absolute;
-  inset: 0;
-}
-
-.iframe_helper iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
+/* Figure caption */
 .bs_blank figcaption,
 .bs_editor figcaption {
-  margin-top: 12px;
+  margin-top: 10px;
   color: var(--bs-muted);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 1rem;
-  line-height: 1.5;
+  font-family: var(--bs-font-ui);
+  font-size: 0.95rem;
+  line-height: 1.45;
 }
 
-.bs_blank hr,
-.bs_editor hr {
-  border: 0;
-  border-top: 1px solid var(--bs-line);
-  margin: 32px 0;
+
+/* ── 10. Diagrams (read-only) ──────────────────────────────── */
+/*
+   Diagram editor UI was removed in v1.1.3.
+   These styles cover read-only rendering of legacy diagram nodes
+   that may exist in published blanks.
+*/
+
+.bs_diagram { margin: 0 0 var(--bs-figure-gap); }
+
+.bs_diagram_preview {
+  border-radius: 14px;
+  background: #fafaf8;
+  border: 1px solid var(--bs-line);
+  padding: 24px;
+  overflow-x: auto;
+  text-align: center;
+}
+.bs_diagram_preview img    { max-width: 100%; height: auto; display: inline-block; }
+.bs_diagram_preview .mermaid { text-align: center; }
+/* mermaid.js replaces pre.mermaid with an svg in-place */
+.bs_diagram_preview svg    { max-width: 100%; height: auto; }
+
+
+/* ── 11. Responsive ────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .bs_blank_buttons { right: 22px; }
 }
 
-.bs_blank_content ul,
-.bs_blank_content ol,
-.bs_editor ul,
-.bs_editor ol {
-  padding-left: 32px;
-}
-
-@media (max-width: 1080px) {
-  .bs_blank_buttons {
-    right: 24px;
-  }
-}
-
-@media (max-width: 960px) {
-  .bs_page {
-    padding: 34px 22px 64px;
-  }
-
-  .bs_blank_buttons {
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    align-items: flex-start;
-    margin-bottom: 24px;
-  }
-
-  .bs_blank_content,
-  .bs_editor {
-    font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 640px) {
-  .bs_page {
-    padding: 22px 16px 56px;
-  }
-
-  .bs_blank_content,
-  .bs_editor {
-    font-size: 1.28rem;
-    line-height: 1.6;
-  }
-
-  .button {
-    width: 100%;
-    justify-content: center;
-  }
-
+@media (max-width: 980px) {
+  .bs_page           { padding-top: 88px; }
+  .bs_blank_buttons  { top: 18px; right: 18px; max-width: calc(100vw - 36px); }
   .bs_status_panel,
-  .error_msg {
-    width: 100%;
+  .error_msg         { width: min(300px, calc(100vw - 36px)); }
+}
+
+@media (max-width: 720px) {
+  .bs_page { padding: 84px 18px 56px; }
+
+  .bs_blank_buttons {
+    left: 18px; right: 18px; top: 14px;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
   }
+
+  .button           { padding: 8px 14px; font-size: 0.82rem; }
+  .bs_status_panel,
+  .error_msg        { order: 10; width: 100%; }
+
+  .bs_blank_content,
+  .bs_editor        { font-size: 1.25rem; line-height: 1.62; }
+
+  .bs_blank_header h1,
+  .bs_editor h1[data-role="title"] { font-size: clamp(2.35rem, 12vw, 3.15rem); line-height: 1.1; }
+
+  .bs_blank_header address,
+  .bs_editor address[data-role="signature"] { margin: 12px 0 30px; }
+
+  /* Text toolbar scrolls horizontally rather than clipping */
+  .bs_tooltip       { max-width: calc(100vw - 24px); overflow-x: auto; }
+
+  /* Block toolbar is slightly more compact on mobile */
+  .bs_blocks        { padding: 7px 8px; opacity: 0.96; }
+
+  .bs_link_prompt   { width: calc(100vw - 24px); }
+}
+
+@media (max-width: 420px) {
+  .bs_page { padding-left: 14px; padding-right: 14px; }
+  .bs_blank_content,
+  .bs_editor  { font-size: 1.16rem; }
+  .button     { font-size: 0.78rem; }
 }

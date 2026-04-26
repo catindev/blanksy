@@ -32,13 +32,25 @@ function renderMetaTags(meta = {}) {
   ].join('\n');
 }
 
-function renderLayout({ meta, body, bootData }) {
+/**
+ * @param {object} options
+ * @param {object} options.meta
+ * @param {string} options.body
+ * @param {object} options.bootData
+ * @param {boolean} [options.includeMermaid] - подключить mermaid.js с CDN
+ */
+function renderLayout({ meta, body, bootData, includeMermaid = false }) {
+  const mermaidScript = includeMermaid
+    ? `<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>`
+    : '';
+
   return `
     <!doctype html>
-    <html lang="en">
+    <html lang="ru">
       <head>
         ${renderMetaTags(meta)}
         <link rel="stylesheet" href="/assets/css/core.css">
+        ${mermaidScript}
       </head>
       <body>
         ${body}

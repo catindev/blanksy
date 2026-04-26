@@ -1,6 +1,6 @@
 {
   "name": "blanksy",
-  "version": "0.1.3",
+  "version": "1.2.0",
   "private": true,
   "description": "Minimal blank publishing service in the spirit of telegra.ph",
   "main": "src/server.js",
@@ -14,17 +14,16 @@
     "dev:db": "docker compose up db -d",
     "dev:down": "docker compose down",
     "test": "node --test",
-    "db:migrate": "node -e \"require('./src/db/migrations').runMigrations().then(()=>process.exit(0)).catch((error)=>{console.error(error);process.exit(1);})\"",
-    "release:patch": "npm version patch",
-    "release:minor": "npm version minor",
-    "release:major": "npm version major"
+    "db:migrate": "node -e \"require('./src/db/migrations').runMigrations().then(()=>process.exit(0)).catch((error)=>{console.error(error);process.exit(1);})\""
   },
   "dependencies": {
+    "compression": "^1.7.5",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.1.0",
+    "morgan": "^1.10.0",
     "pg": "^8.16.0",
     "zod": "^3.24.2"
   }

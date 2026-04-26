@@ -8,6 +8,14 @@ function getPool() {
     pool = new Pool({
       connectionString: process.env.DATABASE_URL || DEFAULT_DATABASE_URL,
       max: 10,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 30000,
+    });
+
+    pool.on('error', (err) => {
+      // Idle client упал (PostgreSQL перезапустился, network blip).
+      // Логируем, но не крашим процесс — pool пересоздаст соединение автоматически.
+      console.error('[pg] idle client error:', err.message);
     });
   }
 

@@ -5,6 +5,8 @@ const { createPathBase } = require('./blank.path');
 const accessService = require('../access/access.service');
 const { AppError } = require('../middleware/error-handler');
 
+const MAX_ACTIVE_ACCESS_TOKENS_PER_BLANK = 25;
+
 function getPublicBaseUrl() {
   return process.env.PUBLIC_BASE_URL || 'http://localhost:3000';
 }
@@ -30,34 +32,49 @@ function addOneYear(date = new Date()) {
 
 async function createBlank(payload) {
   const blankInput = validateBlankInput(payload);
-  const path = await createUniquePath(blankInput.title);
   const description = buildBlankDescription(blankInput.body);
   const coverImageUrl = findCoverImageUrl(blankInput.body);
+  let lastError;
 
-  const blank = await blanksRepository.createBlank({
-    path,
-    title: blankInput.title,
-    signature: blankInput.signature,
-    body: blankInput.body,
-    description,
-    coverImageUrl,
-    expiresAt: addOneYear(),
-  });
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const path = attempt === 0
+      ? await createUniquePath(blankInput.title)
+      : `${createPathBase(blankInput.title, new Date())}-${Date.now().toString(36)}-${attempt}`;
+    const accessToken = accessService.generateAccessToken();
+    const tokenHash = accessService.hashAccessToken(accessToken);
 
-  const accessGrant = await accessService.issueAccessToken(blank.id, blank.path);
+    try {
+      const blank = await blanksRepository.createBlankWithAccessToken({
+        path,
+        title: blankInput.title,
+        signature: blankInput.signature,
+        body: blankInput.body,
+        description,
+        coverImageUrl,
+        expiresAt: addOneYear(),
+      }, tokenHash);
 
-  return {
-    blank: {
-      id: blank.id,
-      path: blank.path,
-      title: blank.title,
-      signature: blank.signature,
-      expiresAt: blank.expiresAt,
-      publicUrl: `${getPublicBaseUrl()}/${blank.path}`,
-    },
-    accessToken: accessGrant.accessToken,
-    accessUrl: accessGrant.accessUrl,
-  };
+      return {
+        blank: {
+          id: blank.id,
+          path: blank.path,
+          title: blank.title,
+          signature: blank.signature,
+          expiresAt: blank.expiresAt,
+          publicUrl: `${getPublicBaseUrl()}/${blank.path}`,
+        },
+        accessToken,
+        accessUrl: `${getPublicBaseUrl()}/${blank.path}?access=${encodeURIComponent(accessToken)}`,
+      };
+    } catch (error) {
+      lastError = error;
+      if (error.code !== '23505') {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 async function getBlankByPath(path, rawToken = null) {
@@ -94,9 +111,7 @@ async function updateBlank(blankId, payload, rawToken) {
   const description = buildBlankDescription(blankInput.body);
   const coverImageUrl = findCoverImageUrl(blankInput.body);
 
-  await blanksRepository.createBlankVersion(existingBlank);
-
-  return blanksRepository.updateBlank(blankId, {
+  return blanksRepository.updateBlankWithVersion(existingBlank, {
     title: blankInput.title,
     signature: blankInput.signature,
     body: blankInput.body,
@@ -121,7 +136,9 @@ async function createAdditionalAccessToken(blankId, rawToken) {
   }
 
   await accessService.requireAccess(blankId, rawToken);
-  return accessService.issueAccessToken(blankId, blank.path, 'extra');
+  return accessService.issueAccessToken(blankId, blank.path, 'extra', {
+    maxActiveTokens: MAX_ACTIVE_ACCESS_TOKENS_PER_BLANK,
+  });
 }
 
 module.exports = {
@@ -131,4 +148,5 @@ module.exports = {
   updateBlank,
   verifyAccess,
   createAdditionalAccessToken,
+  MAX_ACTIVE_ACCESS_TOKENS_PER_BLANK,
 };

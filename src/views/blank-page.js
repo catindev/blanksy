@@ -1,26 +1,11 @@
 const { renderBlankArticle } = require('../blanks/blank.renderer');
 const { renderLayout } = require('./layout');
+const { renderTextToolbar, renderBlockToolbar } = require('./toolbars');
 
-function renderTextToolbar() {
-  return `
-    <div id="bs_text_toolbar" class="bs_tooltip" hidden>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_bold" data-command="bold" aria-label="Bold" title="Bold"><span class="bs_button_label">B</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_italic" data-command="italic" aria-label="Italic" title="Italic"><span class="bs_button_label">I</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_link" data-command="link" aria-label="Link" title="Link"><span class="bs_button_label">Link</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_heading" data-command="heading" aria-label="H2" title="H2"><span class="bs_button_label">H2</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_subheading" data-command="subheading" aria-label="H3" title="H3"><span class="bs_button_label">H3</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_quote" data-command="quote" aria-label="Quote" title="Quote"><span class="bs_button_label">Quote</span></button>
-    </div>
-  `;
-}
-
-function renderBlockToolbar() {
-  return `
-    <div id="bs_blocks" class="bs_blocks" hidden>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_divider" data-insert="divider" aria-label="Divider" title="Divider"><span class="bs_button_label">-</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_media" data-insert="media" aria-label="Media" title="Media"><span class="bs_button_label">+</span></button>
-    </div>
-  `;
+function hasMermaidDiagram(blank) {
+  return Array.isArray(blank.body) && blank.body.some(
+    (node) => node.type === 'diagram' && node.syntax === 'mermaid',
+  );
 }
 
 function renderBlankPage(blank) {
@@ -37,10 +22,10 @@ function renderBlankPage(blank) {
         ${renderTextToolbar()}
         ${renderBlockToolbar()}
         <aside class="bs_blank_buttons">
-          <button id="bs_edit_button" class="button edit_button" hidden>Edit</button>
-          <button id="bs_publish_button" class="button publish_button" hidden>Publish</button>
-          <button id="bs_save_button" class="button save_button" hidden>Save</button>
-          <button id="bs_copy_access_button" class="button access_button" hidden>Copy access link</button>
+          <button id="bs_edit_button" class="button edit_button" hidden>Редактировать</button>
+          <button id="bs_publish_button" class="button publish_button" hidden>Опубликовать</button>
+          <button id="bs_save_button" class="button save_button" hidden>Сохранить</button>
+          <button id="bs_copy_access_button" class="button access_button" hidden>Скопировать ссылку доступа</button>
           <div id="bs_status_panel" class="bs_status_panel" hidden></div>
           <div id="bs_error_msg" class="error_msg" hidden></div>
         </aside>
@@ -62,13 +47,10 @@ function renderBlankPage(blank) {
       canonical,
     },
     body,
-    bootData: {
-      mode: 'view',
-      blank,
-    },
+    bootData: { mode: 'view', blank },
+    // Подключаем mermaid.js только если в blank есть mermaid-диаграммы.
+    includeMermaid: hasMermaidDiagram(blank),
   });
 }
 
-module.exports = {
-  renderBlankPage,
-};
+module.exports = { renderBlankPage };

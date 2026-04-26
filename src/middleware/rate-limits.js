@@ -18,10 +18,12 @@ const createBlankLimiter = createLimiter({ windowMs: 60 * 60 * 1000, max: 20 });
 const updateBlankLimiter = createLimiter({ windowMs: 60 * 60 * 1000, max: 120 });
 const reportBlankLimiter = createLimiter({ windowMs: 60 * 60 * 1000, max: 10 });
 const verifyAccessLimiter = createLimiter({ windowMs: 60 * 60 * 1000, max: 60 });
+const additionalAccessTokenLimiter = createLimiter({ windowMs: 60 * 60 * 1000, max: 20 });
 
 module.exports = {
   createBlankLimiter,
   updateBlankLimiter,
   reportBlankLimiter,
   verifyAccessLimiter,
+  additionalAccessTokenLimiter,
 };

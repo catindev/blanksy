@@ -6,6 +6,7 @@ const {
   createBlankLimiter,
   updateBlankLimiter,
   verifyAccessLimiter,
+  additionalAccessTokenLimiter,
 } = require('../middleware/rate-limits');
 
 const router = express.Router();
@@ -52,7 +53,7 @@ router.post('/blanks/:path/access/verify', verifyAccessLimiter, asyncHandler(asy
   });
 }));
 
-router.post('/blanks/:id/access-tokens', asyncHandler(async (request, response) => {
+router.post('/blanks/:id/access-tokens', additionalAccessTokenLimiter, asyncHandler(async (request, response) => {
   const grant = await blanksService.createAdditionalAccessToken(request.params.id, getBearerToken(request));
   response.status(201).json(grant);
 }));

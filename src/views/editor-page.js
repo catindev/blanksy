@@ -1,37 +1,16 @@
 const { renderLayout } = require('./layout');
+const { renderTextToolbar, renderBlockToolbar } = require('./toolbars');
 
-function renderTextToolbar() {
-  return `
-    <div id="bs_text_toolbar" class="bs_tooltip" hidden>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_bold" data-command="bold" aria-label="Bold" title="Bold"><span class="bs_button_label">B</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_italic" data-command="italic" aria-label="Italic" title="Italic"><span class="bs_button_label">I</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_link" data-command="link" aria-label="Link" title="Link"><span class="bs_button_label">Link</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_heading" data-command="heading" aria-label="H2" title="H2"><span class="bs_button_label">H2</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_subheading" data-command="subheading" aria-label="H3" title="H3"><span class="bs_button_label">H3</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_quote" data-command="quote" aria-label="Quote" title="Quote"><span class="bs_button_label">Quote</span></button>
-    </div>
-  `;
-}
-
-function renderBlockToolbar() {
-  return `
-    <div id="bs_blocks" class="bs_blocks" hidden>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_divider" data-insert="divider" aria-label="Divider" title="Divider"><span class="bs_button_label">-</span></button>
-      <button type="button" class="bs_tool_button bs_icon_button bs_icon_button_media" data-insert="media" aria-label="Media" title="Media"><span class="bs_button_label">+</span></button>
-    </div>
-  `;
-}
-
-function renderEditorShell({ blank = null, mode = 'new' }) {
+function renderEditorShell({ mode = 'new' }) {
   return `
     <div class="bs_page_wrap">
       <div class="bs_page">
         <main class="bs_blank bs_blank_editable" data-page-mode="${mode}">
-          <article id="bs_editor_host" class="bs_blank_host">
+          <article id="bs_editor_host" class="bs_blank_host bs_blank_host--editor">
             <div class="bs_editor" id="bs_editor_root" contenteditable="true">
-              <h1 data-role="title" data-placeholder="Title" class="empty"><br></h1>
-              <address data-role="signature" data-placeholder="Your name" class="empty"><br></address>
-              <p data-placeholder="Your blank starts here..." class="empty"><br></p>
+              <h1 data-role="title" data-placeholder="Заголовок" class="empty"><br></h1>
+              <address data-role="signature" data-placeholder="Ваше имя" class="empty"><br></address>
+              <p data-placeholder="Начните писать..." class="empty"><br></p>
             </div>
           </article>
 
@@ -41,10 +20,10 @@ function renderEditorShell({ blank = null, mode = 'new' }) {
           ${renderBlockToolbar()}
 
           <aside class="bs_blank_buttons">
-            <button id="bs_edit_button" class="button edit_button" hidden>Edit</button>
-            <button id="bs_publish_button" class="button publish_button">Publish</button>
-            <button id="bs_save_button" class="button save_button" hidden>Save</button>
-            <button id="bs_copy_access_button" class="button access_button" hidden>Copy access link</button>
+            <button id="bs_edit_button" class="button edit_button" hidden>Редактировать</button>
+            <button id="bs_publish_button" class="button publish_button">Опубликовать</button>
+            <button id="bs_save_button" class="button save_button" hidden>Сохранить</button>
+            <button id="bs_copy_access_button" class="button access_button" hidden>Скопировать ссылку доступа</button>
             <div id="bs_status_panel" class="bs_status_panel" hidden></div>
             <div id="bs_error_msg" class="error_msg" hidden></div>
           </aside>
@@ -57,18 +36,16 @@ function renderEditorShell({ blank = null, mode = 'new' }) {
 function renderEditorPage() {
   return renderLayout({
     meta: {
-      title: 'New Blank - Blanksy',
+      title: 'Новый blank — Blanksy',
       ogTitle: 'Blanksy',
-      ogDescription: 'Write and publish a blank',
+      ogDescription: 'Пишите и публикуйте blanks',
       twitterTitle: 'Blanksy',
-      twitterDescription: 'Write and publish a blank',
+      twitterDescription: 'Пишите и публикуйте blanks',
       canonical: `${process.env.PUBLIC_BASE_URL || 'http://localhost:3000'}/`,
     },
     body: renderEditorShell({ mode: 'new' }),
-    bootData: {
-      mode: 'new',
-      blank: null,
-    },
+    bootData: { mode: 'new', blank: null },
+    includeMermaid: false,
   });
 }
 

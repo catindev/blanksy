@@ -15,10 +15,24 @@ function getPublicBaseUrl() {
   return process.env.PUBLIC_BASE_URL || 'http://localhost:3000';
 }
 
-async function issueAccessToken(blankId, path, label = null) {
+async function issueAccessToken(blankId, path, label = null, options = {}) {
   const accessToken = generateAccessToken();
   const tokenHash = hashAccessToken(accessToken);
-  await blanksRepository.createAccessToken(blankId, tokenHash, label);
+
+  if (options.maxActiveTokens) {
+    const created = await blanksRepository.createAccessTokenWithLimit(
+      blankId,
+      tokenHash,
+      label,
+      options.maxActiveTokens,
+    );
+
+    if (!created) {
+      throw new AppError(409, 'Too many active access tokens for this blank');
+    }
+  } else {
+    await blanksRepository.createAccessToken(blankId, tokenHash, label);
+  }
 
   return {
     accessToken,

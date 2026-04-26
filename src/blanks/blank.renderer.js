@@ -8,28 +8,13 @@ function escapeHtml(value) {
 }
 
 function renderInlineNode(node) {
-  if (typeof node === 'string') {
-    return escapeHtml(node);
-  }
-
-  if (node.type === 'code') {
-    return `<code>${escapeHtml(node.text)}</code>`;
-  }
+  if (typeof node === 'string') return escapeHtml(node);
+  if (node.type === 'code') return `<code>${escapeHtml(node.text)}</code>`;
 
   const children = renderInlineNodes(node.children || []);
-
-  if (node.type === 'bold') {
-    return `<strong>${children}</strong>`;
-  }
-
-  if (node.type === 'italic') {
-    return `<em>${children}</em>`;
-  }
-
-  if (node.type === 'link') {
-    return `<a href="${escapeHtml(node.href)}" target="_blank" rel="noopener noreferrer">${children}</a>`;
-  }
-
+  if (node.type === 'bold') return `<strong>${children}</strong>`;
+  if (node.type === 'italic') return `<em>${children}</em>`;
+  if (node.type === 'link') return `<a href="${escapeHtml(node.href)}" target="_blank" rel="noopener noreferrer">${children}</a>`;
   return children;
 }
 
@@ -38,10 +23,26 @@ function renderInlineNodes(nodes) {
 }
 
 function renderCaption(caption) {
-  if (!caption) {
-    return '';
-  }
+  if (!caption) return '';
   return `<figcaption>${escapeHtml(caption)}</figcaption>`;
+}
+
+/**
+ * Кодирует код PlantUML как hex-строку для URL PlantUML-сервера.
+ * Формат: https://www.plantuml.com/plantuml/svg/~h{hex}
+ * ~h — нативный формат сервера для hex-encoded текста без сжатия.
+ *
+ * Автоматически оборачивает код в @startuml/@enduml если их нет —
+ * без этих тегов plantuml.com возвращает страницу-приветствие вместо диаграммы.
+ */
+function plantumlHexUrl(code) {
+  let src = (code || '').trim();
+  if (!src) return '';
+  if (!src.startsWith('@start')) {
+    src = `@startuml\n${src}\n@enduml`;
+  }
+  const hex = Buffer.from(src, 'utf8').toString('hex');
+  return `https://www.plantuml.com/plantuml/svg/~h${hex}`;
 }
 
 function renderBlockNode(node) {
@@ -67,6 +68,19 @@ function renderBlockNode(node) {
       const items = node.items.map((item) => `<li>${renderInlineNodes(item)}</li>`).join('');
       return `<${tag}>${items}</${tag}>`;
     }
+    case 'diagram': {
+      if (node.syntax === 'mermaid') {
+        // Код экранируется через escapeHtml. При чтении .textContent браузер
+        // декодирует HTML-entities, поэтому mermaid.js получает исходный код.
+        return `<figure class="bs_diagram" data-syntax="mermaid"><div class="bs_diagram_preview"><pre class="mermaid">${escapeHtml(node.code || '')}</pre></div>${renderCaption(node.caption)}</figure>`;
+      }
+      if (node.syntax === 'plantuml') {
+        const imgUrl = plantumlHexUrl(node.code || '');
+        if (!imgUrl) return '';
+        return `<figure class="bs_diagram" data-syntax="plantuml"><div class="bs_diagram_preview"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(node.caption || 'PlantUML diagram')}" loading="lazy"></div>${renderCaption(node.caption)}</figure>`;
+      }
+      return '';
+    }
     default:
       return '';
   }
@@ -87,7 +101,9 @@ function formatHumanDate(input) {
 function renderMetaLine(blank) {
   const hasSignature = Boolean(blank.signature);
   const hasDate = Boolean(blank.publishedAt);
-  const separator = hasSignature && hasDate ? '<span class="bs_meta_separator" aria-hidden="true">·</span>' : '';
+  const separator = hasSignature && hasDate
+    ? '<span class="bs_meta_separator" aria-hidden="true">·</span>'
+    : '';
 
   return `
     <address>
@@ -114,6 +130,7 @@ function renderBlankArticle(blank) {
 
 module.exports = {
   escapeHtml,
+  plantumlHexUrl,
   renderInlineNodes,
   renderBlankBody,
   renderBlankArticle,
