@@ -24,20 +24,23 @@ docker compose up --build
 ### App on host, Postgres in Docker
 
 1. Create `.env` from [.env.example](/Users/vladimirtitskiy/Dev/blanksy/.env.example).
-2. Start only Postgres:
-
-```bash
-docker compose up db -d
-```
-
-3. Run the app locally:
+2. Run:
 
 ```bash
 npm ci
+```
+
+```bash
 npm run dev
 ```
 
-In this mode the app connects to `postgres://blanksy:blanksy@localhost:5432/blanksy`.
+When `DATABASE_URL` points to `localhost:5432`, `npm run dev` automatically starts `docker compose` service `db`, waits for PostgreSQL, and then launches the watched app server.
+
+To stop local containers later:
+
+```bash
+npm run dev:down
+```
 
 ## MVP slice
 

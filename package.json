@@ -9,7 +9,10 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
+    "dev": "node scripts/dev.js",
+    "dev:app": "node --watch src/server.js",
+    "dev:db": "docker compose up db -d",
+    "dev:down": "docker compose down",
     "test": "node --test",
     "db:migrate": "node -e \"require('./src/db/migrations').runMigrations().then(()=>process.exit(0)).catch((error)=>{console.error(error);process.exit(1);})\"",
     "release:patch": "npm version patch",
