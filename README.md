@@ -13,6 +13,32 @@ docker compose up --build
 
 3. Open [http://localhost:3000](http://localhost:3000).
 
+## Development modes
+
+### Full stack in Docker
+
+```bash
+docker compose up --build
+```
+
+### App on host, Postgres in Docker
+
+1. Create `.env` from [.env.example](/Users/vladimirtitskiy/Dev/blanksy/.env.example).
+2. Start only Postgres:
+
+```bash
+docker compose up db -d
+```
+
+3. Run the app locally:
+
+```bash
+npm ci
+npm run dev
+```
+
+In this mode the app connects to `postgres://blanksy:blanksy@localhost:5432/blanksy`.
+
 ## MVP slice
 
 - Open `/` and start writing immediately.
