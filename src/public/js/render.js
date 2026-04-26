@@ -75,11 +75,27 @@
   }
 
   function formatHumanDate(input) {
-    return new Intl.DateTimeFormat(navigator.language || 'en-US', {
+    return new Intl.DateTimeFormat('ru-RU', {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
     }).format(new Date(input));
+  }
+
+  function renderMetaLine(blank) {
+    const hasSignature = Boolean(blank.signature);
+    const hasDate = Boolean(blank.publishedAt || blank.updatedAt);
+    const separator = hasSignature && hasDate
+      ? '<span class="bs_meta_separator" aria-hidden="true">·</span>'
+      : '';
+
+    return `
+      <address>
+        ${hasSignature ? `<a rel="author">${escapeHtml(blank.signature || '')}</a>` : ''}
+        ${separator}
+        ${hasDate ? `<time datetime="${escapeHtml(blank.publishedAt || blank.updatedAt || '')}">${escapeHtml(formatHumanDate(blank.publishedAt || blank.updatedAt || Date.now()))}</time>` : ''}
+      </address>
+    `;
   }
 
   function renderBlank(blank) {
@@ -87,10 +103,7 @@
       <main class="bs_blank">
         <header class="bs_blank_header" dir="auto">
           <h1>${escapeHtml(blank.title || '')}</h1>
-          <address>
-            <a rel="author">${escapeHtml(blank.signature || '')}</a>
-            <time datetime="${escapeHtml(blank.publishedAt || blank.updatedAt || '')}">${escapeHtml(formatHumanDate(blank.publishedAt || blank.updatedAt || Date.now()))}</time>
-          </address>
+          ${renderMetaLine(blank)}
         </header>
         <article class="bs_blank_content">
           ${renderBody(blank.body || [])}

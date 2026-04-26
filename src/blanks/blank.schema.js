@@ -159,6 +159,42 @@ function validateBodyLimits(body) {
   }
 }
 
+function collectInlineText(nodes) {
+  return nodes
+    .map((node) => {
+      if (typeof node === 'string') {
+        return node;
+      }
+
+      if (node.type === 'code') {
+        return node.text || '';
+      }
+
+      return collectInlineText(node.children || []);
+    })
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hasMeaningfulBodyContent(body) {
+  return body.some((node) => {
+    if (node.type === 'image' || node.type === 'video' || node.type === 'code') {
+      return true;
+    }
+
+    if (node.type === 'divider') {
+      return false;
+    }
+
+    if (node.type === 'list') {
+      return node.items.some((item) => collectInlineText(item).length > 0);
+    }
+
+    return collectInlineText(node.children || []).length > 0;
+  });
+}
+
 function validateBlankInput(payload) {
   const parsed = blankInputSchema.safeParse(payload);
   if (!parsed.success) {
@@ -172,6 +208,11 @@ function validateBlankInput(payload) {
   };
 
   validateBodyLimits(normalized.body);
+
+  if (!hasMeaningfulBodyContent(normalized.body)) {
+    throw new AppError(400, 'Blank body must contain text or media');
+  }
+
   return normalized;
 }
 

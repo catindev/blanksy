@@ -1,9 +1,13 @@
 (function bootstrapEditor(global) {
+  const ICON_SPRITE_URL = '/static/icons_2x.png';
   const MEDIA_PROMPT_TEXT = 'Вставьте ссылку на изображение, YouTube, VK Video или RuTube и нажмите Enter';
+  const DEFAULT_PARAGRAPH_PLACEHOLDER = 'Your blank starts here...';
 
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
+    enableStaticIcons();
+
     const bootNode = document.getElementById('bs_boot');
     const boot = bootNode ? JSON.parse(bootNode.textContent || '{}') : {};
     const host = document.getElementById('bs_editor_host');
@@ -215,9 +219,23 @@
         return;
       }
 
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        moveEditorFocus(env, currentBlock, event.shiftKey ? -1 : 1);
+        return;
+      }
+
       if ((currentBlock.matches('h1[data-role="title"]') || currentBlock.matches('address[data-role="signature"]')) && event.key === 'Enter') {
         event.preventDefault();
         focusNextTextBlock(currentBlock);
+        return;
+      }
+
+      if (currentBlock.matches('blockquote, h2, h3') && event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        insertParagraphAfter(currentBlock);
+        scheduleAutosave(env);
+        updateSelectionUi(env);
         return;
       }
 
@@ -227,8 +245,15 @@
           ? global.BlanksyMedia.parseMediaUrl(text)
           : null;
 
+        if (currentBlock.dataset.mediaPrompt === 'true' && !parsedMedia) {
+          event.preventDefault();
+          showError(env, 'Не удалось распознать ссылку. Поддерживаются изображения, YouTube, VK Video и RuTube.');
+          return;
+        }
+
         if (parsedMedia) {
           event.preventDefault();
+          clearError(env);
           replaceParagraphWithMedia(currentBlock, parsedMedia);
           scheduleAutosave(env);
           updateSelectionUi(env);
@@ -427,6 +452,10 @@
       throw new Error('Blank body is required');
     }
 
+    if (!allowIncomplete && !hasMeaningfulBodyContent(body)) {
+      throw new Error('Blank body must contain text or media');
+    }
+
     return {
       title,
       signature,
@@ -586,6 +615,42 @@
     return String(value || '').replace(/\u200b/g, '').replace(/\s+/g, ' ').trim();
   }
 
+  function hasMeaningfulBodyContent(body) {
+    return body.some((node) => {
+      if (node.type === 'image' || node.type === 'video' || node.type === 'code') {
+        return true;
+      }
+
+      if (node.type === 'divider') {
+        return false;
+      }
+
+      if (node.type === 'list') {
+        return node.items.some((item) => normalizeInlineText(item).length > 0);
+      }
+
+      return normalizeInlineText(node.children || []).length > 0;
+    });
+  }
+
+  function normalizeInlineText(nodes) {
+    return nodes
+      .map((node) => {
+        if (typeof node === 'string') {
+          return node;
+        }
+
+        if (node.type === 'code') {
+          return node.text || '';
+        }
+
+        return normalizeInlineText(node.children || []);
+      })
+      .join('')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function scheduleAutosave(env) {
     if (!env.editorRoot) {
       return;
@@ -644,7 +709,57 @@
     if (!currentBlock.nextElementSibling) {
       currentBlock.after(next);
     }
-    placeCaretAtEnd(next);
+    placeCaretAtStart(next.matches('figure') ? next.querySelector('figcaption') || next : next);
+  }
+
+  function moveEditorFocus(env, currentBlock, direction) {
+    if (!env.editorRoot) {
+      return;
+    }
+
+    const focusTargets = getFocusTargets(env.editorRoot);
+    const currentTarget = resolveFocusTarget(currentBlock);
+    const currentIndex = focusTargets.indexOf(currentTarget);
+
+    if (currentIndex === -1) {
+      return;
+    }
+
+    const nextIndex = currentIndex + direction;
+    if (nextIndex >= 0 && nextIndex < focusTargets.length) {
+      placeCaretAtStart(focusTargets[nextIndex]);
+      return;
+    }
+
+    if (direction > 0) {
+      const paragraph = createEmptyParagraph();
+      env.editorRoot.append(paragraph);
+      placeCaretAtStart(paragraph);
+      refreshPlaceholders(env.editorRoot);
+      scheduleAutosave(env);
+    }
+  }
+
+  function getFocusTargets(root) {
+    return Array.from(root.children)
+      .map((child) => resolveFocusTarget(child))
+      .filter(Boolean);
+  }
+
+  function resolveFocusTarget(element) {
+    if (!element) {
+      return null;
+    }
+
+    if (element.matches('hr')) {
+      return null;
+    }
+
+    if (element.matches('figure')) {
+      return element.querySelector('figcaption');
+    }
+
+    return element;
   }
 
   function findCurrentEmptyParagraph(env) {
@@ -772,6 +887,7 @@
     }
 
     scheduleAutosave(env);
+    refreshPlaceholders(env.editorRoot);
     updateSelectionUi(env);
   }
 
@@ -783,12 +899,13 @@
   }
 
   function replaceBlockTag(block, tagName, placeholder) {
-    if (block.matches('h1[data-role="title"], address[data-role="signature"], figure, hr')) {
+    if (!block.matches('p, h2, h3, blockquote')) {
       return;
     }
 
-    const replacement = document.createElement(tagName);
-    replacement.dataset.placeholder = placeholder;
+    const replacementTag = block.matches(tagName) ? 'p' : tagName;
+    const replacement = document.createElement(replacementTag);
+    replacement.dataset.placeholder = replacementTag === 'p' ? DEFAULT_PARAGRAPH_PLACEHOLDER : placeholder;
     replacement.innerHTML = block.innerHTML || '<br>';
     block.replaceWith(replacement);
     placeCaretAtEnd(replacement);
@@ -830,7 +947,7 @@
 
   function createEmptyParagraph() {
     const paragraph = document.createElement('p');
-    paragraph.dataset.placeholder = 'Your blank starts here...';
+    paragraph.dataset.placeholder = DEFAULT_PARAGRAPH_PLACEHOLDER;
     paragraph.innerHTML = '<br>';
     return paragraph;
   }
@@ -849,6 +966,16 @@
     const range = document.createRange();
     range.selectNodeContents(element);
     range.collapse(false);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  function placeCaretAtStart(element) {
+    element.focus();
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(true);
     const selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
@@ -874,12 +1001,14 @@
   function clearError(env) {
     if (env.controls.errorBox) {
       env.controls.errorBox.textContent = '';
+      env.controls.errorBox.hidden = true;
     }
   }
 
   function showError(env, message) {
     if (env.controls.errorBox) {
       env.controls.errorBox.textContent = message;
+      env.controls.errorBox.hidden = false;
     }
   }
 
@@ -888,5 +1017,13 @@
       return;
     }
     node.hidden = !visible;
+  }
+
+  function enableStaticIcons() {
+    const sprite = new Image();
+    sprite.onload = () => {
+      document.body.classList.add('bs_has_icons');
+    };
+    sprite.src = ICON_SPRITE_URL;
   }
 }(window));
