@@ -382,6 +382,8 @@ a {
 .bs_tool_button:hover,
 .bs_tool_button:focus          { background: var(--bs-toolbar-hover); outline: none; }
 .bs_tool_button.bs_tool_active { background: var(--bs-toolbar-active); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.5); }
+/* Mixed state: part of selection has this format, part doesn't */
+.bs_tool_button.bs_tool_mixed  { background: rgba(255,255,255,0.14); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3); opacity: 0.8; }
 
 .bs_tool_button svg    { display: block; flex-shrink: 0; }
 .bs_button_label       { display: inline-block; font-size: 0.9rem; font-weight: 800; letter-spacing: -0.01em; }
@@ -473,27 +475,7 @@ a {
 }
 
 
-/* ── 10. Diagrams (read-only) ──────────────────────────────── */
-/*
-   Diagram editor UI was removed in v1.1.3.
-   These styles cover read-only rendering of legacy diagram nodes
-   that may exist in published blanks.
-*/
-
-.bs_diagram { margin: 0 0 var(--bs-figure-gap); }
-
-.bs_diagram_preview {
-  border-radius: 14px;
-  background: #fafaf8;
-  border: 1px solid var(--bs-line);
-  padding: 24px;
-  overflow-x: auto;
-  text-align: center;
-}
-.bs_diagram_preview img    { max-width: 100%; height: auto; display: inline-block; }
-.bs_diagram_preview .mermaid { text-align: center; }
-/* mermaid.js replaces pre.mermaid with an svg in-place */
-.bs_diagram_preview svg    { max-width: 100%; height: auto; }
+/* ── 10. Diagrams — removed in v1.3.0 ─────────────────────── */
 
 
 /* ── 11. Responsive ────────────────────────────────────────── */

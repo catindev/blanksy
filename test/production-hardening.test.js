@@ -3,7 +3,7 @@ const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { parseTrustProxy, redactUrlSecrets } = require('../src/app');
+const { createApp, parseTrustProxy, redactUrlSecrets } = require('../src/app');
 
 const rootDir = path.resolve(__dirname, '..');
 
@@ -26,6 +26,16 @@ test('redactUrlSecrets removes access tokens from logged URLs', () => {
   assert.equal(redactUrlSecrets('/my-blank?a=1'), '/my-blank?a=1');
 });
 
+test('development CSP does not upgrade localhost assets to HTTPS', async () => {
+  const csp = await getHealthCsp('development');
+  assert.doesNotMatch(csp, /upgrade-insecure-requests/);
+});
+
+test('production CSP keeps upgrade-insecure-requests enabled', async () => {
+  const csp = await getHealthCsp('production');
+  assert.match(csp, /upgrade-insecure-requests/);
+});
+
 test('active access-token index is delivered as a separate migration', () => {
   const initial = fs.readFileSync(path.join(rootDir, 'migrations/001_init.sql'), 'utf8');
   const followUp = fs.readFileSync(path.join(rootDir, 'migrations/002_access_token_active_index.sql'), 'utf8');
@@ -40,3 +50,28 @@ test('editor normalizes direct text nodes before serialization', () => {
   assert.match(editorSource, /function normaliseRootChildNodes\(root\)/);
   assert.match(editorSource, /normaliseRootChildNodes\(root\);/);
 });
+
+async function getHealthCsp(nodeEnv) {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = nodeEnv;
+
+  const app = createApp();
+  const server = await new Promise((resolve) => {
+    const instance = app.listen(0, '127.0.0.1', () => resolve(instance));
+  });
+
+  try {
+    const { port } = server.address();
+    const response = await fetch(`http://127.0.0.1:${port}/health`);
+    return response.headers.get('content-security-policy') || '';
+  } finally {
+    await new Promise((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+    if (previousNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
+  }
+}

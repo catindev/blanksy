@@ -26,13 +26,6 @@ const blockNodeSchema = z.union([
   }),
   z.object({ type: z.literal('code'), text: z.string() }),
   z.object({ type: z.literal('list'), ordered: z.boolean(), items: z.array(z.array(inlineNodeSchema)) }),
-  // Диаграммы: Mermaid и PlantUML
-  z.object({
-    type: z.literal('diagram'),
-    syntax: z.enum(['mermaid', 'plantuml']),
-    code: z.string().max(8192),
-    caption: z.string().max(300).optional(),
-  }),
 ]);
 
 const blankInputSchema = z.object({
@@ -82,9 +75,6 @@ function validateBodyLimits(body) {
       case 'heading':
       case 'quote': countInlineStats(node.children, stats); break;
       case 'list': for (const item of node.items) countInlineStats(item, stats); break;
-      case 'diagram':
-        if (!node.code || !node.code.trim()) throw new AppError(400, 'Diagram code cannot be empty');
-        break;
       default: break;
     }
   }
@@ -108,7 +98,6 @@ function collectInlineText(nodes) {
 function hasMeaningfulBodyContent(body) {
   return body.some((node) => {
     if (node.type === 'image' || node.type === 'video' || node.type === 'code') return true;
-    if (node.type === 'diagram') return Boolean(node.code && node.code.trim());
     if (node.type === 'divider') return false;
     if (node.type === 'list') return node.items.some((item) => collectInlineText(item).length > 0);
     return collectInlineText(node.children || []).length > 0;

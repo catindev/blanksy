@@ -1,10 +1,7 @@
 function escapeHtml(value) {
   return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function serializeBootData(value) {
@@ -32,25 +29,13 @@ function renderMetaTags(meta = {}) {
   ].join('\n');
 }
 
-/**
- * @param {object} options
- * @param {object} options.meta
- * @param {string} options.body
- * @param {object} options.bootData
- * @param {boolean} [options.includeMermaid] - подключить mermaid.js с CDN
- */
-function renderLayout({ meta, body, bootData, includeMermaid = false }) {
-  const mermaidScript = includeMermaid
-    ? `<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>`
-    : '';
-
+function renderLayout({ meta, body, bootData }) {
   return `
     <!doctype html>
     <html lang="ru">
       <head>
         ${renderMetaTags(meta)}
         <link rel="stylesheet" href="/assets/css/core.css">
-        ${mermaidScript}
       </head>
       <body>
         ${body}
@@ -65,6 +50,4 @@ function renderLayout({ meta, body, bootData, includeMermaid = false }) {
   `;
 }
 
-module.exports = {
-  renderLayout,
-};
+module.exports = { renderLayout };

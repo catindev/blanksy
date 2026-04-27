@@ -27,24 +27,6 @@ function renderCaption(caption) {
   return `<figcaption>${escapeHtml(caption)}</figcaption>`;
 }
 
-/**
- * Кодирует код PlantUML как hex-строку для URL PlantUML-сервера.
- * Формат: https://www.plantuml.com/plantuml/svg/~h{hex}
- * ~h — нативный формат сервера для hex-encoded текста без сжатия.
- *
- * Автоматически оборачивает код в @startuml/@enduml если их нет —
- * без этих тегов plantuml.com возвращает страницу-приветствие вместо диаграммы.
- */
-function plantumlHexUrl(code) {
-  let src = (code || '').trim();
-  if (!src) return '';
-  if (!src.startsWith('@start')) {
-    src = `@startuml\n${src}\n@enduml`;
-  }
-  const hex = Buffer.from(src, 'utf8').toString('hex');
-  return `https://www.plantuml.com/plantuml/svg/~h${hex}`;
-}
-
 function renderBlockNode(node) {
   switch (node.type) {
     case 'paragraph':
@@ -67,19 +49,6 @@ function renderBlockNode(node) {
       const tag = node.ordered ? 'ol' : 'ul';
       const items = node.items.map((item) => `<li>${renderInlineNodes(item)}</li>`).join('');
       return `<${tag}>${items}</${tag}>`;
-    }
-    case 'diagram': {
-      if (node.syntax === 'mermaid') {
-        // Код экранируется через escapeHtml. При чтении .textContent браузер
-        // декодирует HTML-entities, поэтому mermaid.js получает исходный код.
-        return `<figure class="bs_diagram" data-syntax="mermaid"><div class="bs_diagram_preview"><pre class="mermaid">${escapeHtml(node.code || '')}</pre></div>${renderCaption(node.caption)}</figure>`;
-      }
-      if (node.syntax === 'plantuml') {
-        const imgUrl = plantumlHexUrl(node.code || '');
-        if (!imgUrl) return '';
-        return `<figure class="bs_diagram" data-syntax="plantuml"><div class="bs_diagram_preview"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(node.caption || 'PlantUML diagram')}" loading="lazy"></div>${renderCaption(node.caption)}</figure>`;
-      }
-      return '';
     }
     default:
       return '';
@@ -130,7 +99,6 @@ function renderBlankArticle(blank) {
 
 module.exports = {
   escapeHtml,
-  plantumlHexUrl,
   renderInlineNodes,
   renderBlankBody,
   renderBlankArticle,

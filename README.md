@@ -16,17 +16,55 @@ docker compose up --build
 
 Открыть: `http://localhost:3000`
 
-PostgreSQL поднимается вторым контейнером. Миграции запускаются автоматически при старте приложения.
-
 ---
 
-## Локальная разработка (приложение на хосте, БД в Docker)
+## Разработка (приложение на хосте, БД в Docker)
 
 ```bash
 cp .env.example .env
 npm ci
-npm run dev        # поднимает БД, ждёт PostgreSQL, запускает node --watch
-npm run dev:down   # останавливает контейнеры
+npm run dev
+npm run dev:down   # остановить контейнеры
+```
+
+---
+
+## Тесты
+
+```bash
+# Юнит-тесты (schema, media parser)
+npm test
+
+# E2e-тесты (требует запущенного сервера на localhost:3000)
+npm run test:e2e
+
+# Только desktop
+npm run test:e2e:desktop
+
+# Только mobile (iPhone 14 viewport)
+npm run test:e2e:mobile
+
+# С UI-режимом Playwright
+npm run test:e2e:ui
+
+# Всё сразу
+npm run test:all
+```
+
+### Первый запуск Playwright
+
+```bash
+npx playwright install chromium webkit
+```
+
+### Запуск e2e против локального сервера
+
+```bash
+# Терминал 1
+npm run dev
+
+# Терминал 2
+npm run test:e2e
 ```
 
 ---
@@ -36,13 +74,14 @@ npm run dev:down   # останавливает контейнеры
 | Функция | Описание |
 |---|---|
 | Rich-text редактор | Bold, italic, ссылки, H2, H3, цитата |
+| Toolbar active/mixed state | Кнопки отражают текущий формат выделения; `mixed` при частичном выделении |
 | Медиа | Изображения по URL, YouTube, VK Video, RuTube |
+| Нераспознанный URL в медиа | Вставляется как гиперссылка вместо ошибки |
 | Публикация | POST `/api/blanks` → public link + access link |
 | Редактирование | Access link сохраняется в `localStorage`; `?access=TOKEN` даёт доступ с любого устройства |
-| Автосохранение | Черновик сохраняется в `localStorage` каждые 300 мс |
-| SEO | SSR с Open Graph / Twitter Card мета-тегами |
+| Автосохранение | Черновик в `localStorage` каждые 300 мс |
+| SSR | Open Graph / Twitter Card мета-теги |
 | Безопасность | `helmet` + CSP, токены только как SHA-256 hash, rate limiting |
-| Диаграммы | Mermaid (CDN) и PlantUML (plantuml.com) — рендеринг legacy-нод |
 
 ---
 
@@ -60,48 +99,10 @@ npm run dev:down   # останавливает контейнеры
    ```html
    <button type="button" class="bs_tool_button bs_block_btn" data-insert="mytype">…</button>
    ```
-3. **Обработать клик** в block toolbar click handler (`editor.js`, секция 3):
-   ```js
-   } else if (btn.dataset.insert === 'mytype') {
-     insertMyBlock(env, paragraph);
-   }
-   ```
+3. **Обработать клик** в block toolbar click handler (`editor.js`, секция 3).
 4. **Добавить read-only рендерер** в `src/public/js/render.js` и `src/blanks/blank.renderer.js`.
 5. **Добавить в схему** в `src/blanks/blank.schema.js`.
-
----
-
-## Тесты
-
-```bash
-npm ci
-npm test
-```
-
----
-
-## Release checklist
-
-```bash
-npm ci && npm test
-docker compose up --build
-```
-
-Проверить вручную:
-1. `http://localhost:3000` → создать blank
-2. Скопировать access link
-3. Открыть публичную ссылку в новой вкладке
-4. Открыть access link → нажать «Редактировать» → изменить → «Сохранить»
-5. Проверить мобильную ширину в DevTools
-
-```bash
-git add .
-git commit -m "Release Blanksy vX.Y.Z"
-git tag -a vX.Y.Z -m "Blanksy X.Y.Z"
-git push origin main --tags
-
-gh release create vX.Y.Z --title "Blanksy X.Y.Z" --notes-file CHANGELOG.md
-```
+6. **Написать e2e-тест** в `e2e/04-media.spec.js` или новый spec-файл.
 
 ---
 
@@ -109,7 +110,7 @@ gh release create vX.Y.Z --title "Blanksy X.Y.Z" --notes-file CHANGELOG.md
 
 | Переменная | Значение |
 |---|---|
-| `PUBLIC_BASE_URL` | Публичный домен, напр. `https://blanksy.example.com` |
+| `PUBLIC_BASE_URL` | `https://blanksy.example.com` |
 | `DATABASE_URL` | Production PostgreSQL |
 | `NODE_ENV` | `production` |
 | `TRUST_PROXY` | `1` если приложение стоит за одним reverse proxy; `0` локально |
@@ -117,5 +118,18 @@ gh release create vX.Y.Z --title "Blanksy X.Y.Z" --notes-file CHANGELOG.md
 Требования:
 - HTTPS через reverse proxy (Caddy / Nginx + Let's Encrypt)
 - Настроить `TRUST_PROXY` под число доверенных proxy-hop, иначе rate limit и report IP будут видеть IP прокси
-- Убрать `ports` у `db` в docker-compose для production
+- Убрать `ports` у `db` в docker-compose
 - Регулярный backup PostgreSQL
+
+## Release workflow
+
+```bash
+npm ci && npm test
+# Запустить сервер и прогнать e2e
+npm run test:e2e
+
+git add .
+git commit -m "Release v1.3.0"
+git tag -a v1.3.0 -m "Blanksy 1.3.0"
+git push origin main --tags
+```

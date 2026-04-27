@@ -101,28 +101,6 @@
       resolveTarget: (el) => el.querySelector('figcaption'),
     }],
 
-    // Diagrams: editor insertion removed in v1.1.3.
-    // renderEditable kept for backward compatibility (opening old blanks).
-    ['diagram', {
-      renderEditable: (node) => {
-        const syntax = node.syntax || 'mermaid';
-        const ph = syntax === 'mermaid'
-          ? 'graph LR\n  A --> B'
-          : '@startuml\nAlice -> Bob: Hello\n@enduml';
-        return `
-          <figure data-node-type="diagram" data-syntax="${esc(syntax)}">
-            <pre class="bs_diagram_code" contenteditable="true" spellcheck="false"
-                 data-placeholder="${esc(ph)}">${esc(node.code || '') || '<br>'}</pre>
-            <figcaption data-placeholder="Подпись (необязательно)">${esc(node.caption || '') || '<br>'}</figcaption>
-          </figure>`;
-      },
-      serialize: (el) => {
-        const code    = (el.querySelector('.bs_diagram_code')?.textContent || '').replace(/\u200b/g, '');
-        const caption = trim(el.querySelector('figcaption')?.textContent);
-        return { type: 'diagram', syntax: el.dataset.syntax || 'mermaid', code, ...(caption && { caption }) };
-      },
-      resolveTarget: (el) => el.querySelector('.bs_diagram_code') || el.querySelector('figcaption'),
-    }],
   ]);
 
 
@@ -338,9 +316,6 @@
     env.host.innerHTML = global.BlanksyRender.renderBlank(blank);
     env.editorRoot = null;
     hideSelectionUi(env);
-    if (blank.body?.some((n) => n.type === 'diagram' && n.syntax === 'mermaid')) {
-      window.mermaid?.run();
-    }
   }
 
   function hydrateEditor(env, blank) {
@@ -435,10 +410,11 @@
     // This is the reliable fix for Enter inside blockquote/h2/h3 spawning a clone (BUG-001).
     root.addEventListener('beforeinput', (e) => {
       if (e.inputType !== 'insertParagraph') return;
-      const block = closestBlock(window.getSelection()?.anchorNode);
+      const block = currentSelectionBlock(root);
       if (block?.matches('blockquote, h2, h3')) {
         e.preventDefault();
         insertParagraphAfter(block);
+        refreshPlaceholders(root);
         scheduleAutosave(env);
         updateSelectionUi(env);
       }
@@ -465,7 +441,7 @@
   }
 
   function handleKeyDown(env, e) {
-    const block = closestBlock(window.getSelection()?.anchorNode);
+    const block = currentSelectionBlock(env.editorRoot);
     if (!block) return;
 
     // Tab ─ navigate between blocks; insert spaces inside <pre>
@@ -490,6 +466,7 @@
     if (block.matches('blockquote, h2, h3') && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       insertParagraphAfter(block);
+      refreshPlaceholders(env.editorRoot);
       scheduleAutosave(env);
       return;
     }
@@ -602,7 +579,7 @@
       return { type: 'code', text };
     }
 
-    // Registered block types (image, video, diagram, …)
+    // Registered block types (image, video, …)
     const nodeType = el.dataset.nodeType;
     if (nodeType) {
       const entry = BLOCK_EDITORS.get(nodeType);
@@ -651,7 +628,6 @@
   function hasMeaningfulContent(body) {
     return body.some((n) => {
       if (['image', 'video', 'code'].includes(n.type)) return true;
-      if (n.type === 'diagram')  return Boolean(n.code?.trim());
       if (n.type === 'divider')  return false;
       if (n.type === 'list')     return n.items.some((item) => flatText(item).length > 0);
       return flatText(n.children || []).length > 0;
@@ -742,9 +718,7 @@
   }
 
   function findCurrentEmptyParagraph(env) {
-    const node = window.getSelection()?.anchorNode;
-    if (!node) return null;
-    const block = closestBlock(node);
+    const block = currentSelectionBlock(env.editorRoot);
     return (block?.matches('p') && isEmptyBlock(block)) ? block : null;
   }
 
@@ -797,19 +771,75 @@
 
   function syncToolbarActive(toolbar, sel, range) {
     const container = range.commonAncestorContainer;
-    const el        = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
     const block     = closestBlock(container);
 
-    set(toolbar, '[data-command="bold"]',       document.queryCommandState('bold'));
-    set(toolbar, '[data-command="italic"]',     document.queryCommandState('italic'));
-    set(toolbar, '[data-command="link"]',       Boolean(el?.closest('a')));
-    set(toolbar, '[data-command="quote"]',      Boolean(block?.matches('blockquote')));
-    set(toolbar, '[data-command="heading"]',    Boolean(block?.matches('h2')));
-    set(toolbar, '[data-command="subheading"]', Boolean(block?.matches('h3')));
+    // Bold and italic: walk the full selection range to determine
+    // active (all), mixed (partial) or inactive (none).
+    const boldState   = rangeInlineState(range, 'strong');
+    const italicState = rangeInlineState(range, 'em');
 
-    function set(root, selector, active) {
-      root.querySelector(selector)?.classList.toggle('bs_tool_active', active);
+    // Link: active when entire range is inside a single <a>
+    const el      = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
+    const linkAnchor = el?.closest('a') || null;
+    const isLink  = Boolean(linkAnchor);
+
+    const isQuote = Boolean(block?.matches('blockquote'));
+    const isH2    = Boolean(block?.matches('h2'));
+    const isH3    = Boolean(block?.matches('h3'));
+
+    setButtonState(toolbar, '[data-command="bold"]',       boldState);
+    setButtonState(toolbar, '[data-command="italic"]',     italicState);
+    setButtonState(toolbar, '[data-command="link"]',       isLink ? 'active' : 'inactive');
+    setButtonState(toolbar, '[data-command="quote"]',      isQuote ? 'active' : 'inactive');
+    setButtonState(toolbar, '[data-command="heading"]',    isH2    ? 'active' : 'inactive');
+    setButtonState(toolbar, '[data-command="subheading"]', isH3    ? 'active' : 'inactive');
+  }
+
+  /**
+   * Walks all text nodes within range and checks whether they are
+   * all wrapped in a given tag (active), some (mixed), or none (inactive).
+   *
+   * Returns 'active' | 'mixed' | 'inactive'.
+   */
+  function rangeInlineState(range, tag) {
+    const textNodes = textNodesInRange(range);
+    if (textNodes.length === 0) return 'inactive';
+
+    const covered = textNodes.filter((n) => Boolean(n.parentElement?.closest(tag)));
+    if (covered.length === 0) return 'inactive';
+    if (covered.length === textNodes.length) return 'active';
+    return 'mixed';
+  }
+
+  /**
+   * Collects all text nodes that fall (even partially) within the range.
+   */
+  function textNodesInRange(range) {
+    const root   = range.commonAncestorContainer;
+    const walker = document.createTreeWalker(
+      root.nodeType === Node.TEXT_NODE ? root.parentNode : root,
+      NodeFilter.SHOW_TEXT,
+    );
+
+    const nodes = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      if (range.intersectsNode(node)) nodes.push(node);
     }
+    return nodes;
+  }
+
+  /**
+   * Sets bs_tool_active and bs_tool_mixed classes on a toolbar button.
+   * 'active'   → solid highlight
+   * 'mixed'    → dimmer highlight (partial selection)
+   * 'inactive' → no highlight
+   */
+  function setButtonState(toolbar, selector, state) {
+    const btn = toolbar.querySelector(selector);
+    if (!btn) return;
+    btn.classList.toggle('bs_tool_active', state === 'active');
+    btn.classList.toggle('bs_tool_mixed',  state === 'mixed');
   }
 
   function updateBlockToolbar(env, sel) {
@@ -854,22 +884,6 @@
 
   function handleTextCommand(env, command) {
     if (command === 'link') {
-      const sel = window.getSelection();
-      if (sel && !sel.isCollapsed) {
-        const range = sel.getRangeAt(0);
-        const container = range.commonAncestorContainer;
-        const el = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
-        if (el?.closest('a')) {
-          // Toggle: remove the link
-          restoreSavedRange(env);
-          document.execCommand('unlink', false);
-          normaliseEditorDom(env.editorRoot);
-          refreshPlaceholders(env.editorRoot);
-          scheduleAutosave(env);
-          updateSelectionUi(env);
-          return;
-        }
-      }
       showLinkTooltip(env);
       return;
     }
@@ -896,22 +910,39 @@
 
   function showLinkTooltip(env) {
     if (!env.controls.linkTooltip) return;
-    const tRect      = env.controls.textToolbar.getBoundingClientRect();
-    const pl         = pageLeft();
-    const pageEl     = document.querySelector('.bs_page');
-    const pageWidth  = pageEl?.offsetWidth || 760;
-    const maxW       = Math.min(440, pageWidth - 16);
-    const rawLeft    = window.scrollX + tRect.left - pl;
+    if (!env.state.savedRange) return;
+
+    // Existing link in selection?
+    const container = env.state.savedRange.commonAncestorContainer;
+    const el        = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
+    const existing  = el?.closest('a');
+    const currentHref = existing ? (existing.getAttribute('href') || '') : '';
+
+    // Position from selection rect (not toolbar rect) so the prompt
+    // appears directly under the selected text regardless of toolbar position.
+    const selRect   = env.state.savedRange.getBoundingClientRect();
+    const pl        = pageLeft();
+    const pageEl    = document.querySelector('.bs_page');
+    const pageWidth = pageEl?.offsetWidth || 760;
+    const maxW      = Math.min(440, pageWidth - 16);
+    const rawLeft   = window.scrollX + selRect.left - pl;
 
     env.controls.linkTooltip.hidden = false;
     env.controls.linkTooltip.innerHTML = `
       <div class="bs_link_prompt">
-        <input type="url" placeholder="Вставьте ссылку..." autocomplete="off">
+        <input type="url" placeholder="Вставьте ссылку..." autocomplete="off"
+               value="${esc(currentHref)}">
         <button type="button" data-action="close-link" aria-label="Закрыть">×</button>
       </div>`;
-    env.controls.linkTooltip.style.top  = `${window.scrollY + tRect.bottom + 8}px`;
-    env.controls.linkTooltip.style.left = `${Math.max(8, Math.min(rawLeft, pageWidth - maxW - 8))}px`;
-    env.controls.linkTooltip.querySelector('input')?.focus();
+
+    const tooltip = env.controls.linkTooltip;
+    tooltip.style.top  = `${window.scrollY + selRect.bottom + 8}px`;
+    tooltip.style.left = `${Math.max(8, Math.min(rawLeft, pageWidth - maxW - 8))}px`;
+
+    const input = tooltip.querySelector('input');
+    input?.focus();
+    // Select all so the user can immediately replace the URL
+    input?.select();
   }
 
   function hideLinkTooltip(env) {
@@ -924,15 +955,25 @@
   function applyLinkFromTooltip(env) {
     const input = env.controls.linkTooltip?.querySelector('input');
     const href  = input?.value?.trim();
-    if (!href) { hideLinkTooltip(env); return; }
-    const safe = global.BlanksyMedia.parseHttpUrl(href);
-    if (!safe) { showError(env, 'Ссылка должна быть публичным http/https URL'); input?.focus(); return; }
+
+    hideLinkTooltip(env);
     restoreSavedRange(env);
-    document.execCommand('createLink', false, safe.toString());
+
+    if (!href) {
+      // Empty field → remove any existing link
+      document.execCommand('unlink', false);
+    } else {
+      const safe = global.BlanksyMedia.parseHttpUrl(href);
+      if (!safe) {
+        showError(env, 'Ссылка должна быть публичным http/https URL');
+        return;
+      }
+      document.execCommand('createLink', false, safe.toString());
+    }
+
     normaliseEditorDom(env.editorRoot);
     refreshPlaceholders(env.editorRoot);
     scheduleAutosave(env);
-    hideLinkTooltip(env);
     updateSelectionUi(env);
   }
 
@@ -1234,6 +1275,25 @@
     return el?.closest(
       'h1[data-role="title"], address[data-role="signature"], p, h2, h3, blockquote, figure, figcaption, pre, ul, ol, hr',
     ) || null;
+  }
+
+  function currentSelectionBlock(root) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+
+    const direct = closestBlock(sel.anchorNode) || closestBlock(sel.focusNode);
+    if (direct) return direct;
+
+    const range = sel.getRangeAt(0);
+    return blockFromRootOffset(root, range.startContainer, range.startOffset)
+      || blockFromRootOffset(root, range.endContainer, range.endOffset);
+  }
+
+  function blockFromRootOffset(root, container, offset) {
+    if (!root || container !== root) return null;
+    const before = root.childNodes[Math.max(0, offset - 1)];
+    const after  = root.childNodes[offset];
+    return closestBlock(before) || closestBlock(after);
   }
 
   function placeCaretAtEnd(el) {

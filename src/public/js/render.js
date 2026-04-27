@@ -8,22 +8,6 @@
       .replace(/'/g, '&#39;');
   }
 
-  /**
-   * Кодирует код PlantUML для URL plantuml.com.
-   * ~h{hex} — нативный формат сервера, hex UTF-8 байт без сжатия.
-   * Автоматически оборачивает в @startuml/@enduml если нет этих тегов.
-   */
-  function plantumlHexUrl(code) {
-    let src = (code || '').trim();
-    if (!src) return '';
-    if (!src.startsWith('@start')) {
-      src = `@startuml\n${src}\n@enduml`;
-    }
-    const bytes = new TextEncoder().encode(src);
-    const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
-    return `https://www.plantuml.com/plantuml/svg/~h${hex}`;
-  }
-
   function renderInlineNode(node) {
     if (typeof node === 'string') return escapeHtml(node);
     if (node.type === 'code') return `<code>${escapeHtml(node.text)}</code>`;
@@ -68,17 +52,6 @@
         const tag = node.ordered ? 'ol' : 'ul';
         const items = (node.items || []).map((item) => `<li>${renderInlineNodes(item)}</li>`).join('');
         return `<${tag}>${items}</${tag}>`;
-      }
-      case 'diagram': {
-        if (node.syntax === 'mermaid') {
-          return `<figure class="bs_diagram" data-syntax="mermaid"><div class="bs_diagram_preview"><pre class="mermaid">${escapeHtml(node.code || '')}</pre></div>${renderCaption(node.caption)}</figure>`;
-        }
-        if (node.syntax === 'plantuml') {
-          const imgUrl = plantumlHexUrl(node.code || '');
-          if (!imgUrl) return '';
-          return `<figure class="bs_diagram" data-syntax="plantuml"><div class="bs_diagram_preview"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(node.caption || 'PlantUML diagram')}" loading="lazy"></div>${renderCaption(node.caption)}</figure>`;
-        }
-        return '';
       }
       default:
         return '';
@@ -129,7 +102,6 @@
 
   global.BlanksyRender = {
     escapeHtml,
-    plantumlHexUrl,
     renderInlineNodes,
     renderBody,
     renderBlank,
