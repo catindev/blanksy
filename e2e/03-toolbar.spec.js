@@ -197,3 +197,57 @@ test.describe('Quote and Enter behaviour', () => {
     expect(nextBlock).toBe('p');
   });
 });
+
+test.describe('Empty paragraph accumulation', () => {
+  test('repeated Enter in empty paragraph does not stack empty blocks', async ({ page }) => {
+    await page.goto('/');
+    await fillBlank(page, { title: 'Enter-тест', body: 'Текст' });
+
+    // Press Enter 5 times from the last paragraph
+    const editor = page.locator('#bs_editor_root');
+    await editor.locator('p').last().click();
+    await page.keyboard.press('End');
+    for (let i = 0; i < 5; i++) await page.keyboard.press('Enter');
+
+    // Count consecutive empty paragraphs — should be at most 1
+    const emptyCount = await editor.evaluate((root) => {
+      const paras = Array.from(root.querySelectorAll('p'));
+      let maxConsecutive = 0;
+      let consecutive = 0;
+      for (const p of paras) {
+        if (!p.textContent.replace(/\u200b/g, '').trim()) {
+          consecutive++;
+          maxConsecutive = Math.max(maxConsecutive, consecutive);
+        } else {
+          consecutive = 0;
+        }
+      }
+      return maxConsecutive;
+    });
+
+    expect(emptyCount).toBeLessThanOrEqual(1);
+  });
+
+  test('single empty paragraph between two content blocks is preserved', async ({ page }) => {
+    await page.goto('/');
+    await fillBlank(page, { title: 'Отступ-тест', body: 'Первый абзац' });
+
+    const editor = page.locator('#bs_editor_root');
+    await editor.locator('p').last().click();
+    await page.keyboard.press('End');
+    await page.keyboard.press('Enter'); // empty paragraph
+    await page.keyboard.press('Enter'); // start of second content paragraph
+    await page.keyboard.type('Второй абзац');
+
+    // There should be exactly one empty paragraph between the two content blocks
+    const structure = await editor.evaluate((root) => {
+      return Array.from(root.querySelectorAll('p')).map((p) =>
+        p.textContent.replace(/\u200b/g, '').trim() || '(empty)'
+      );
+    });
+
+    const emptyBetween = structure.filter((t) => t === '(empty)').length;
+    expect(emptyBetween).toBeLessThanOrEqual(1);
+    expect(structure.some((t) => t.includes('Второй абзац'))).toBe(true);
+  });
+});

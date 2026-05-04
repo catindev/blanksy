@@ -122,7 +122,6 @@
 
     if (env.state.mode === 'new') {
       hydrateEditor(env, null);
-      restoreDraft(env);
       focusTitle(env);
       return;
     }
@@ -149,7 +148,6 @@
         blank:        boot.blank || null,
         accessToken:  null,
         accessUrl:    null,
-        autosaveTimer: null,
         savedRange:   null,
       },
       controls: {
@@ -190,7 +188,6 @@
         });
         env.state.accessToken = created.accessToken;
         env.state.accessUrl   = created.accessUrl;
-        clearDraft(env);
 
         const fresh = await global.BlanksyApi.getBlank(created.blank.path, created.accessToken);
         env.state.blank = fresh.blank;
@@ -219,7 +216,6 @@
         await global.BlanksyApi.updateBlank(env.state.blank.id, payload, env.state.accessToken);
         const fresh = await global.BlanksyApi.getBlank(env.state.blank.path, env.state.accessToken);
         env.state.blank = fresh.blank;
-        clearDraft(env);
 
         renderReadOnly(env, fresh.blank);
         hideControl(env.controls.saveButton);
@@ -239,7 +235,6 @@
         const fresh = await global.BlanksyApi.getBlank(env.state.blank.path, env.state.accessToken);
         env.state.blank = fresh.blank;
         hydrateEditor(env, fresh.blank);
-        restoreDraft(env);
         hideControl(env.controls.editButton);
         hideControl(env.controls.publishButton);
         showControl(env.controls.saveButton);
@@ -322,6 +317,8 @@
     env.host.innerHTML = buildEditorHtml(blank);
     env.editorRoot     = document.getElementById('bs_editor_root');
     bindEditorEvents(env);
+    // Collapse any consecutive empty paragraphs accumulated in DB before this fix
+    collapseConsecutiveEmptyParagraphs(env.editorRoot);
     refreshPlaceholders(env.editorRoot);
     // Show correct action buttons
     blank ? showControl(env.controls.saveButton) : showControl(env.controls.publishButton);
@@ -411,20 +408,28 @@
     root.addEventListener('beforeinput', (e) => {
       if (e.inputType !== 'insertParagraph') return;
       const block = currentSelectionBlock(root);
+
+      // blockquote / h2 / h3 → new paragraph after
       if (block?.matches('blockquote, h2, h3')) {
         e.preventDefault();
         insertParagraphAfter(block);
         refreshPlaceholders(root);
-        scheduleAutosave(env);
         updateSelectionUi(env);
+        return;
+      }
+
+      // Empty paragraph → no-op (Telegraph behaviour).
+      // Prevents stacking empty blocks on repeated Enter.
+      if (block?.matches('p') && isEmptyBlock(block)) {
+        e.preventDefault();
       }
     });
 
     root.addEventListener('input', () => {
       normaliseEditorDom(root);
       ensureEditorStructure(root);
+      collapseConsecutiveEmptyParagraphs(root);
       refreshPlaceholders(root);
-      scheduleAutosave(env);
       updateSelectionUi(env);
     });
 
@@ -436,7 +441,6 @@
       document.execCommand('insertText', false, text);
       normaliseEditorDom(root);
       refreshPlaceholders(root);
-      scheduleAutosave(env);
     });
   }
 
@@ -467,7 +471,6 @@
       e.preventDefault();
       insertParagraphAfter(block);
       refreshPlaceholders(env.editorRoot);
-      scheduleAutosave(env);
       return;
     }
 
@@ -475,7 +478,6 @@
     if (block.matches('figcaption') && e.key === 'Enter') {
       e.preventDefault();
       insertParagraphAfter(block.closest('figure'));
-      scheduleAutosave(env);
       return;
     }
 
@@ -486,13 +488,12 @@
       const text   = block.textContent.trim();
       const parsed = global.BlanksyMedia.parseMediaUrl(text);
       if (parsed) {
-        insertMediaBlock(block, parsed);
+        insertMediaBlock(env, block, parsed);
       } else if (text) {
         insertLinkBlock(env, block, text);
       } else {
         deactivateMediaPrompt(env, block);
       }
-      scheduleAutosave(env);
       updateSelectionUi(env);
       return;
     }
@@ -510,8 +511,7 @@
       if (parsed) {
         e.preventDefault();
         clearError(env);
-        insertMediaBlock(block, parsed);
-        scheduleAutosave(env);
+        insertMediaBlock(env, block, parsed);
         updateSelectionUi(env);
       }
     }
@@ -524,7 +524,6 @@
       if (sibling?.matches('figure, hr')) {
         e.preventDefault();
         sibling.remove();
-        scheduleAutosave(env);
         updateSelectionUi(env);
       }
     }
@@ -640,35 +639,9 @@
 
 
   /* ═══════════════════════════════════════════════════════════════════════════
-     7. Draft / Autosave
+     7. (removed) Draft / Autosave — removed in v1.3.3.
+        Unsaved changes are lost on reload (same as Telegraph).
      ═══════════════════════════════════════════════════════════════════════════ */
-
-  function scheduleAutosave(env) {
-    if (!env.editorRoot) return;
-    clearTimeout(env.state.autosaveTimer);
-    env.state.autosaveTimer = setTimeout(() => {
-      try {
-        localStorage.setItem(draftKey(env), JSON.stringify(serializeEditor(env, true)));
-      } catch { /* ignore while typing */ }
-    }, 300);
-  }
-
-  function restoreDraft(env) {
-    const raw = localStorage.getItem(draftKey(env));
-    if (!raw) { refreshPlaceholders(env.editorRoot); return; }
-    try {
-      const draft = JSON.parse(raw);
-      env.host.innerHTML = buildEditorHtml(draft);
-      env.editorRoot     = document.getElementById('bs_editor_root');
-      bindEditorEvents(env);
-      refreshPlaceholders(env.editorRoot);
-    } catch {
-      refreshPlaceholders(env.editorRoot);
-    }
-  }
-
-  function clearDraft(env) { localStorage.removeItem(draftKey(env)); }
-  function draftKey(env)   { return env.state.blank?.id ? `blanksy:blank:${env.state.blank.id}:draft` : 'blanksy:new:draft'; }
 
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -702,7 +675,6 @@
       env.editorRoot.append(p);
       placeCaretAtStart(p);
       refreshPlaceholders(env.editorRoot);
-      scheduleAutosave(env);
     }
   }
 
@@ -893,7 +865,6 @@
       document.execCommand(command, false);
       normaliseEditorDom(env.editorRoot);
       refreshPlaceholders(env.editorRoot);
-      scheduleAutosave(env);
       updateSelectionUi(env);
       return;
     }
@@ -903,7 +874,6 @@
     if (command === 'heading')    replaceBlockTag(block, 'h2', 'Заголовок раздела');
     if (command === 'subheading') replaceBlockTag(block, 'h3', 'Подзаголовок');
     if (command === 'quote')      replaceBlockTag(block, 'blockquote', 'Цитата');
-    scheduleAutosave(env);
     refreshPlaceholders(env.editorRoot);
     updateSelectionUi(env);
   }
@@ -973,7 +943,6 @@
 
     normaliseEditorDom(env.editorRoot);
     refreshPlaceholders(env.editorRoot);
-    scheduleAutosave(env);
     updateSelectionUi(env);
   }
 
@@ -1017,14 +986,40 @@
     updateSelectionUi(env);
   }
 
-  function insertMediaBlock(paragraph, media) {
+  /**
+   * Replaces a paragraph with a media figure (image or video).
+   * After insertion: focuses the figcaption so the user can add a caption
+   * and the block toolbar doesn't appear immediately ("hanging icon" UX fix).
+   * Enter from figcaption already creates a paragraph after the figure.
+   * On img load/error: recalculates UI position in case layout shifted.
+   */
+  function insertMediaBlock(env, paragraph, media) {
     const wrapper = document.createElement('div');
     const entry   = BLOCK_EDITORS.get(media.type);
     wrapper.innerHTML = entry ? entry.renderEditable(media) : '';
     const figure = wrapper.firstElementChild;
     if (!figure) return;
+
     paragraph.replaceWith(figure);
+    // Ensure there's a paragraph after the figure for when the user
+    // presses Enter from the caption or clicks below the image.
     insertParagraphAfter(figure);
+
+    // Focus figcaption — gives the user a natural next step (add caption),
+    // and keeps the block toolbar hidden since figcaption is not a <p>.
+    const caption = figure.querySelector('figcaption');
+    if (caption) {
+      placeCaretAtEnd(caption);
+    }
+
+    // Re-run selection UI after image loads (layout may shift).
+    const img = figure.querySelector('img');
+    if (img) {
+      img.addEventListener('load',  () => updateSelectionUi(env), { once: true });
+      img.addEventListener('error', () => updateSelectionUi(env), { once: true });
+    }
+
+    if (env.editorRoot) refreshPlaceholders(env.editorRoot);
   }
 
   /**
@@ -1145,6 +1140,45 @@
     p.innerHTML = el.innerHTML || '<br>';
     el.replaceWith(p);
     return p;
+  }
+
+  /**
+   * Collapses consecutive empty paragraphs into one.
+   * Runs after every input event as a fallback in case beforeinput
+   * didn't stop the browser from creating a new empty block.
+   *
+   * Rule: only consecutive empty <p> are collapsed — a single empty <p>
+   * between two content blocks is kept as intentional visual spacing.
+   */
+  function collapseConsecutiveEmptyParagraphs(root) {
+    if (!root) return;
+
+    let prevEmptyParagraph = null;
+
+    Array.from(root.children).forEach((child) => {
+      if (!child.matches('p')) {
+        prevEmptyParagraph = null;
+        return;
+      }
+
+      const empty = isEmptyBlock(child);
+
+      if (empty && prevEmptyParagraph) {
+        // Transfer caret to the surviving paragraph before removing this one
+        const selection = window.getSelection();
+        const containsSelection = selection?.rangeCount &&
+          child.contains(selection.anchorNode);
+
+        child.remove();
+
+        if (containsSelection) {
+          placeCaretAtEnd(prevEmptyParagraph);
+        }
+        return;
+      }
+
+      prevEmptyParagraph = empty ? child : null;
+    });
   }
 
   function refreshPlaceholders(root) {

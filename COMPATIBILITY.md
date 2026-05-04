@@ -41,11 +41,12 @@ Stable schema established.
 
 Access tokens stored only as SHA-256 hash. Raw tokens are never persisted.
 
-`localStorage` keys:
-- `blanksy:access:{blankId}` — access token
-- `blanksy:new:draft` — draft of blank being created
-- `blanksy:blank:{blankId}:draft` — draft of blank being edited
-- `blanksy:known_blanks` — up to 50 recently accessed blanks
+`localStorage` keys (v1.3.3+):
+- `blanksy:access:{blankId}` — access token for a specific blank
+- `blanksy:known_blanks` — up to 50 recently accessed blanks (title + path)
+
+Note: draft autosave keys (`blanksy:new:draft`, `blanksy:blank:{id}:draft`) were
+removed in v1.3.3. Existing keys in user browsers are harmless and will expire naturally.
 
 ## Architectural boundaries
 
