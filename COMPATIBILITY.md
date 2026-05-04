@@ -1,8 +1,6 @@
 # Compatibility
 
-## Content model
-
-### Supported block types (v1.3.0)
+## Content model — supported block types (v1.4.1)
 
 | Type | Since | Notes |
 |---|---|---|
@@ -15,42 +13,62 @@
 | `code` | 1.0.0 | |
 | `list` | 1.0.0 | |
 
-### Removed block types
-
-| Type | Removed | Reason |
-|---|---|---|
-| `diagram` | 1.3.0 | No users, no content to preserve. Removed from API, schema, renderers, CSS and CSP. |
-
-### Breaking changes by version
-
-#### 1.3.0 — Diagram block type removed
-`type: "diagram"` nodes are no longer accepted by the API (`POST /api/blanks`, `PATCH /api/blanks/:id`).
-Requests containing diagram nodes will fail validation with HTTP 400.
-
-#### 1.1.3 — Diagram editor UI removed
-Diagram insertion was removed from the editor UI. The API still accepted diagram nodes at this point.
-
-#### 1.0.0 — Initial schema
-Stable schema established.
+**Removed:** `diagram` удалён в 1.3.0 — API возвращает 400 на diagram payload.
 
 ## API
 
-`POST /api/blanks` and `PATCH /api/blanks/:id` validate the body against `blank.schema.js`.
+### Breaking changes by version
+
+**1.4.0:**
+- `POST /api/blanks` — добавлен `optionalAuth`. Без авторизации поведение не изменилось.
+- `PATCH /api/blanks/:id` — принимает access token **или** SSO ownership.
+- Новые: `POST /api/blanks/:id/link`, `GET /api/my/blanks`.
+
+**1.3.0:** `diagram` nodes → HTTP 400.
+
+## SSO / Identity contract
+
+JWT payload принимаемый Blanksy:
+```json
+{ "sub": "usr_abc123", "iss": "https://id.example.com", "aud": "blanksy", "iat": 0, "exp": 0 }
+```
+
+- `sub` — непрозрачный userId, хранится как TEXT.
+- `aud` — должен совпадать с `AUTH_JWT_AUDIENCE` (по умолчанию `"blanksy"`).
+
+**Алгоритмы:**
+
+| Окружение | Разрешено | Запрещено |
+|---|---|---|
+| `NODE_ENV=production` | RS256 | HS256 |
+| `NODE_ENV!=production` | RS256, HS256 | — |
+
+HS256 запрещён в production для защиты от algorithm confusion attack (CVE-2015-9235).
+
+**Различение токенов:**
+- Blanksy access token — base64url без точек.
+- JWT — три части через точку (`xxx.yyy.zzz`).
+
+## Expires policy
+
+| Blank type | expires_at |
+|---|---|
+| Anonymous (без SSO) | `now + 1 year` |
+| SSO-owned (`userId` в запросе) | `null` (не истекает) |
 
 ## Storage
 
-Access tokens stored only as SHA-256 hash. Raw tokens are never persisted.
+Access tokens — только как SHA-256 hash.
 
-`localStorage` keys (v1.3.3+):
-- `blanksy:access:{blankId}` — access token for a specific blank
-- `blanksy:known_blanks` — up to 50 recently accessed blanks (title + path)
+`localStorage` keys:
+- `blanksy:access:{blankId}` — access token
+- `blanksy:known_blanks` — до 50 недавно открытых blanks
 
-Note: draft autosave keys (`blanksy:new:draft`, `blanksy:blank:{id}:draft`) were
-removed in v1.3.3. Existing keys in user browsers are harmless and will expire naturally.
+Note: draft autosave keys удалены в v1.3.3.
 
 ## Architectural boundaries
 
-- Frontend JS: vanilla IIFE modules, no build step. Adding a build step is a breaking dev workflow change.
-- All block types are rendered SSR (for SEO) and client-side (for the live editor). Both renderers must stay in sync — add a new block type to `render.js`, `blank.renderer.js`, `blank.schema.js` and `BLOCK_EDITORS` registry together.
-- `BLOCK_EDITORS` registry in `editor.js` is the single source of truth for editor knowledge of block types.
-- E2e tests live in `e2e/` and require a running server. Unit tests in `test/` are standalone.
+- Frontend JS: vanilla IIFE, нет build step.
+- Все block types рендерятся SSR (SEO) и client-side (editor). При добавлении нового типа — менять оба рендерера + schema + BLOCK_EDITORS.
+- SSO — опциональный слой. Все существующие endpoints работают без авторизации.
+- `blank_owners` создаётся атомарно в той же транзакции что и blank + access token.

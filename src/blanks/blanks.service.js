@@ -30,9 +30,16 @@ function addOneYear(date = new Date()) {
   return copy;
 }
 
-async function createBlank(payload) {
-  const blankInput = validateBlankInput(payload);
-  const description = buildBlankDescription(blankInput.body);
+/**
+ * Создаёт новый blank.
+ * @param {object} payload
+ * @param {string|null} userId — userId из SSO JWT. Если задан:
+ *   - blank автоматически привязывается к пользователю (атомарно в одной транзакции)
+ *   - expires_at устанавливается в null (owned blank не истекает)
+ */
+async function createBlank(payload, userId = null) {
+  const blankInput    = validateBlankInput(payload);
+  const description   = buildBlankDescription(blankInput.body);
   const coverImageUrl = findCoverImageUrl(blankInput.body);
   let lastError;
 
@@ -41,24 +48,27 @@ async function createBlank(payload) {
       ? await createUniquePath(blankInput.title)
       : `${createPathBase(blankInput.title, new Date())}-${Date.now().toString(36)}-${attempt}`;
     const accessToken = accessService.generateAccessToken();
-    const tokenHash = accessService.hashAccessToken(accessToken);
+    const tokenHash   = accessService.hashAccessToken(accessToken);
 
     try {
       const blank = await blanksRepository.createBlankWithAccessToken({
         path,
-        title: blankInput.title,
-        signature: blankInput.signature,
-        body: blankInput.body,
+        title:      blankInput.title,
+        signature:  blankInput.signature,
+        body:       blankInput.body,
         description,
         coverImageUrl,
-        expiresAt: addOneYear(),
+        // SSO-owned blanks не истекают. Anonymous blanks истекают через год.
+        expiresAt:  userId ? null : addOneYear(),
+        // userId передаётся в транзакцию чтобы blank_owners создался атомарно.
+        userId,
       }, tokenHash);
 
       return {
         blank: {
-          id: blank.id,
-          path: blank.path,
-          title: blank.title,
+          id:        blank.id,
+          path:      blank.path,
+          title:     blank.title,
           signature: blank.signature,
           expiresAt: blank.expiresAt,
           publicUrl: `${getPublicBaseUrl()}/${blank.path}`,
@@ -68,9 +78,7 @@ async function createBlank(payload) {
       };
     } catch (error) {
       lastError = error;
-      if (error.code !== '23505') {
-        throw error;
-      }
+      if (error.code !== '23505') throw error;
     }
   }
 
@@ -79,42 +87,42 @@ async function createBlank(payload) {
 
 async function getBlankByPath(path, rawToken = null) {
   const blank = await blanksRepository.getBlankByPath(path);
-  if (!blank) {
-    throw new AppError(404, 'Blank not found');
-  }
+  if (!blank) throw new AppError(404, 'Blank not found');
 
   const canEdit = rawToken ? await accessService.verifyAccessForBlank(blank.id, rawToken) : false;
-  return {
-    blank,
-    canEdit,
-  };
+  return { blank, canEdit };
 }
 
 async function getBlankForPage(path) {
   const blank = await blanksRepository.getBlankByPath(path);
-  if (!blank) {
-    throw new AppError(404, 'Blank not found');
-  }
-
+  if (!blank) throw new AppError(404, 'Blank not found');
   return blank;
 }
 
-async function updateBlank(blankId, payload, rawToken) {
+/**
+ * Обновляет blank.
+ * Доступ проверяется через access token ИЛИ через ownership (userId из SSO).
+ */
+async function updateBlank(blankId, payload, rawToken, userId = null) {
   const existingBlank = await blanksRepository.getBlankById(blankId);
-  if (!existingBlank) {
-    throw new AppError(404, 'Blank not found');
+  if (!existingBlank) throw new AppError(404, 'Blank not found');
+
+  // Проверяем доступ: access token ИЛИ ownership через SSO
+  const hasToken     = rawToken && await accessService.verifyAccessForBlank(blankId, rawToken);
+  const hasOwnership = userId  && await blanksRepository.isBlankOwnedByUser(blankId, userId);
+
+  if (!hasToken && !hasOwnership) {
+    throw new AppError(403, 'Access token is invalid');
   }
 
-  await accessService.requireAccess(blankId, rawToken);
-
-  const blankInput = validateBlankInput(payload);
-  const description = buildBlankDescription(blankInput.body);
+  const blankInput    = validateBlankInput(payload);
+  const description   = buildBlankDescription(blankInput.body);
   const coverImageUrl = findCoverImageUrl(blankInput.body);
 
   return blanksRepository.updateBlankWithVersion(existingBlank, {
-    title: blankInput.title,
-    signature: blankInput.signature,
-    body: blankInput.body,
+    title:      blankInput.title,
+    signature:  blankInput.signature,
+    body:       blankInput.body,
     description,
     coverImageUrl,
   });
@@ -122,23 +130,39 @@ async function updateBlank(blankId, payload, rawToken) {
 
 async function verifyAccess(path, rawToken) {
   const verified = await accessService.verifyAccessForPath(path, rawToken);
-  if (!verified) {
-    throw new AppError(403, 'Access token is invalid');
-  }
-
+  if (!verified) throw new AppError(403, 'Access token is invalid');
   return verified;
 }
 
 async function createAdditionalAccessToken(blankId, rawToken) {
   const blank = await blanksRepository.getBlankById(blankId);
-  if (!blank) {
-    throw new AppError(404, 'Blank not found');
-  }
+  if (!blank) throw new AppError(404, 'Blank not found');
 
   await accessService.requireAccess(blankId, rawToken);
   return accessService.issueAccessToken(blankId, blank.path, 'extra', {
     maxActiveTokens: MAX_ACTIVE_ACCESS_TOKENS_PER_BLANK,
   });
+}
+
+/**
+ * Привязывает существующий blank к userId из SSO.
+ * Требует валидный access token как доказательство владения.
+ */
+async function linkBlankToOwner(blankId, rawToken, userId) {
+  const blank = await blanksRepository.getBlankById(blankId);
+  if (!blank) throw new AppError(404, 'Blank not found');
+
+  await accessService.requireAccess(blankId, rawToken);
+  await blanksRepository.linkBlankToOwner(blankId, userId);
+
+  return { ok: true, blankId, userId };
+}
+
+/**
+ * Возвращает список blanks привязанных к userId.
+ */
+async function getBlanksByOwner(userId) {
+  return blanksRepository.getBlanksByOwner(userId);
 }
 
 module.exports = {
@@ -148,5 +172,7 @@ module.exports = {
   updateBlank,
   verifyAccess,
   createAdditionalAccessToken,
+  linkBlankToOwner,
+  getBlanksByOwner,
   MAX_ACTIVE_ACCESS_TOKENS_PER_BLANK,
 };

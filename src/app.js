@@ -3,7 +3,6 @@ const path = require('node:path');
 const compression = require('compression');
 const express = require('express');
 const morgan = require('morgan');
-const cookieParser = require('cookie-parser');
 
 const { applySecurity } = require('./middleware/security');
 const {
@@ -61,7 +60,6 @@ function createApp() {
   applySecurity(app);
   app.use(compression());
   applyRequestLogging(app);
-  app.use(cookieParser());
   app.use(express.json({ limit: '256kb' }));
   app.use(express.urlencoded({ extended: false }));
 

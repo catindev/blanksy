@@ -90,6 +90,16 @@ async function createBlankWithAccessToken(blankInput, accessTokenHash, label = '
       VALUES ($1, $2, $3)
     `, [blank.id, accessTokenHash, label]);
 
+    // Если передан userId (SSO) — привязываем владельца атомарно в той же транзакции.
+    // Это гарантирует что blank никогда не создаётся без владельца при авторизованном запросе.
+    if (blankInput.userId) {
+      await client.query(`
+        INSERT INTO blank_owners (blank_id, user_id)
+        VALUES ($1, $2)
+        ON CONFLICT DO NOTHING
+      `, [blank.id, blankInput.userId]);
+    }
+
     return blank;
   });
 }
@@ -291,10 +301,12 @@ async function cleanupExpiredBlanks() {
 }
 
 module.exports = {
+  linkBlankToOwner,
+  getBlanksByOwner,
+  isBlankOwnedByUser,
   isPathTaken,
   createBlankWithAccessToken,
   updateBlankWithVersion,
-  createBlank,
   getBlankByPath,
   getBlankById,
   updateBlank,
@@ -307,3 +319,39 @@ module.exports = {
   createReport,
   cleanupExpiredBlanks,
 };
+
+// ── SSO / blank ownership ────────────────────────────────────────────────────
+
+async function linkBlankToOwner(blankId, userId) {
+  const pool = getPool();
+  await pool.query(`
+    INSERT INTO blank_owners (blank_id, user_id)
+    VALUES ($1, $2)
+    ON CONFLICT DO NOTHING
+  `, [blankId, userId]);
+}
+
+async function getBlanksByOwner(userId) {
+  const pool = getPool();
+  const result = await pool.query(`
+    SELECT b.*
+    FROM blanks b
+    JOIN blank_owners o ON o.blank_id = b.id
+    WHERE o.user_id = $1
+      AND b.deleted_at IS NULL
+      AND b.status = 'published'
+    ORDER BY b.updated_at DESC
+    LIMIT 100
+  `, [userId]);
+  return result.rows.map(mapBlankRow);
+}
+
+async function isBlankOwnedByUser(blankId, userId) {
+  const pool = getPool();
+  const result = await pool.query(`
+    SELECT 1 FROM blank_owners
+    WHERE blank_id = $1 AND user_id = $2
+    LIMIT 1
+  `, [blankId, userId]);
+  return result.rowCount > 0;
+}

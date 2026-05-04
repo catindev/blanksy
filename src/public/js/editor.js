@@ -1,5 +1,5 @@
 /**
- * editor.js — Blanksy rich-text editor  v1.2.0
+ * editor.js — Blanksy rich-text editor  v1.4.0
  *
  * Sections
  *   1.  Constants & Block Registry
@@ -317,14 +317,14 @@
     env.host.innerHTML = buildEditorHtml(blank);
     env.editorRoot     = document.getElementById('bs_editor_root');
     bindEditorEvents(env);
-    // Collapse any consecutive empty paragraphs accumulated in DB before this fix
-    collapseConsecutiveEmptyParagraphs(env.editorRoot);
     refreshPlaceholders(env.editorRoot);
     // Show correct action buttons
     blank ? showControl(env.controls.saveButton) : showControl(env.controls.publishButton);
     hideControl(env.controls.editButton);
-    // Always land with an empty paragraph at the bottom ready to type into
+    // Ensure trailing empty paragraph, then collapse any accumulated duplicates.
+    // Order matters: ensureTrailing adds a paragraph, collapse may remove if prev is also empty.
     ensureTrailingParagraph(env);
+    collapseConsecutiveEmptyParagraphs(env.editorRoot);
   }
 
   function ensureTrailingParagraph(env) {
@@ -333,7 +333,14 @@
     if (!root.lastElementChild?.matches('p') || !isEmptyBlock(root.lastElementChild)) {
       root.appendChild(createEmptyParagraph());
     }
-    requestAnimationFrame(() => placeCaretAtEnd(root.lastElementChild));
+    // Only move caret if the editor currently has focus (or nothing is focused).
+    // On slow devices, a user might click elsewhere between hydrateEditor and rAF.
+    requestAnimationFrame(() => {
+      const active = document.activeElement;
+      if (!active || active === document.body || root.contains(active)) {
+        placeCaretAtEnd(root.lastElementChild);
+      }
+    });
   }
 
   // ── Editor HTML builders ──────────────────────────────────────────────────
