@@ -1,6 +1,6 @@
 const crypto = require('node:crypto');
 
-const blanksRepository = require('../blanks/blanks.repository');
+const textsRepository = require('../texts/texts.repository');
 const { AppError } = require('../middleware/error-handler');
 
 function generateAccessToken() {
@@ -15,23 +15,23 @@ function getPublicBaseUrl() {
   return process.env.PUBLIC_BASE_URL || 'http://localhost:3000';
 }
 
-async function issueAccessToken(blankId, path, label = null, options = {}) {
+async function issueAccessToken(textId, path, label = null, options = {}) {
   const accessToken = generateAccessToken();
   const tokenHash = hashAccessToken(accessToken);
 
   if (options.maxActiveTokens) {
-    const created = await blanksRepository.createAccessTokenWithLimit(
-      blankId,
+    const created = await textsRepository.createAccessTokenWithLimit(
+      textId,
       tokenHash,
       label,
       options.maxActiveTokens,
     );
 
     if (!created) {
-      throw new AppError(409, 'Too many active access tokens for this blank');
+      throw new AppError(409, 'Too many active access tokens for this text');
     }
   } else {
-    await blanksRepository.createAccessToken(blankId, tokenHash, label);
+    await textsRepository.createAccessToken(textId, tokenHash, label);
   }
 
   return {
@@ -46,39 +46,39 @@ async function verifyAccessForPath(path, rawToken) {
   }
 
   const tokenHash = hashAccessToken(rawToken);
-  const match = await blanksRepository.getBlankByPathAndTokenHash(path, tokenHash);
+  const match = await textsRepository.getTextByPathAndTokenHash(path, tokenHash);
   if (!match) {
     return null;
   }
 
-  await blanksRepository.touchAccessToken(match.access_token_id);
+  await textsRepository.touchAccessToken(match.access_token_id);
   return {
-    blankId: match.id,
+    textId: match.id,
     path: match.path,
   };
 }
 
-async function verifyAccessForBlank(blankId, rawToken) {
+async function verifyAccessForText(textId, rawToken) {
   if (!rawToken) {
     return false;
   }
 
   const tokenHash = hashAccessToken(rawToken);
-  const token = await blanksRepository.getAccessTokenByBlankIdAndHash(blankId, tokenHash);
+  const token = await textsRepository.getAccessTokenByTextIdAndHash(textId, tokenHash);
   if (!token) {
     return false;
   }
 
-  await blanksRepository.touchAccessToken(token.id);
+  await textsRepository.touchAccessToken(token.id);
   return true;
 }
 
-async function requireAccess(blankId, rawToken) {
+async function requireAccess(textId, rawToken) {
   if (!rawToken) {
     throw new AppError(401, 'Access token is required');
   }
 
-  const isValid = await verifyAccessForBlank(blankId, rawToken);
+  const isValid = await verifyAccessForText(textId, rawToken);
   if (!isValid) {
     throw new AppError(403, 'Access token is invalid');
   }
@@ -89,6 +89,6 @@ module.exports = {
   hashAccessToken,
   issueAccessToken,
   verifyAccessForPath,
-  verifyAccessForBlank,
+  verifyAccessForText,
   requireAccess,
 };

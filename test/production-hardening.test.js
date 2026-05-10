@@ -21,9 +21,9 @@ test('parseTrustProxy treats true as one trusted proxy hop', () => {
 });
 
 test('redactUrlSecrets removes access tokens from logged URLs', () => {
-  assert.equal(redactUrlSecrets('/my-blank?access=secret-token'), '/my-blank?access=%5Bredacted%5D');
-  assert.equal(redactUrlSecrets('/my-blank?a=1&access=secret-token&b=2'), '/my-blank?a=1&access=%5Bredacted%5D&b=2');
-  assert.equal(redactUrlSecrets('/my-blank?a=1'), '/my-blank?a=1');
+  assert.equal(redactUrlSecrets('/my-text?access=secret-token'), '/my-text?access=%5Bredacted%5D');
+  assert.equal(redactUrlSecrets('/my-text?a=1&access=secret-token&b=2'), '/my-text?a=1&access=%5Bredacted%5D&b=2');
+  assert.equal(redactUrlSecrets('/my-text?a=1'), '/my-text?a=1');
 });
 
 test('development CSP does not upgrade localhost assets to HTTPS', async () => {
@@ -40,8 +40,8 @@ test('active access-token index is delivered as a separate migration', () => {
   const initial = fs.readFileSync(path.join(rootDir, 'migrations/001_init.sql'), 'utf8');
   const followUp = fs.readFileSync(path.join(rootDir, 'migrations/002_access_token_active_index.sql'), 'utf8');
 
-  assert.equal(initial.includes('blank_access_tokens_token_hash_active_idx'), false);
-  assert.match(followUp, /blank_access_tokens_token_hash_active_idx/);
+  assert.equal(initial.includes('text_access_tokens_token_hash_active_idx'), false);
+  assert.match(followUp, /text_access_tokens_token_hash_active_idx/);
 });
 
 test('editor normalizes direct text nodes before serialization', () => {

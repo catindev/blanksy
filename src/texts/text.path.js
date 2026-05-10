@@ -21,7 +21,7 @@ function slugifyTitle(title) {
     .replace(/-{2,}/g, '-')
     .slice(0, 80);
 
-  return slug || 'blank';
+  return slug || 'text';
 }
 
 function createPathBase(title, date = new Date()) {

@@ -1,5 +1,5 @@
 /**
- * editor.js — Blanksy rich-text editor  v1.4.0
+ * editor.js — Bytext rich-text editor  v2.0.0
  *
  * Sections
  *   1.  Constants & Block Registry
@@ -7,7 +7,7 @@
  *   3.  Global Action Bindings  (publish / save / edit / copy)
  *   4.  Render                  (read-only ↔ editor HTML)
  *   5.  Editor Event Bindings
- *   6.  Serialization           (DOM → BlankNode[])
+ *   6.  Serialization           (DOM → TextNode[])
  *   7.  Draft / Autosave
  *   8.  Focus & Navigation
  *   9.  Selection UI            (text toolbar, block toolbar)
@@ -21,7 +21,7 @@
  * 1. Add an entry to BLOCK_EDITORS (see Section 1).
  *    Each entry defines:
  *      renderEditable(node)   → HTML string for the editor DOM
- *      serialize(element)     → BlankNode | null
+ *      serialize(element)     → TextNode | null
  *      resolveTarget(element) → focusable Element | null
  *
  * 2. Add a button to renderBlockToolbar() in toolbars.js:
@@ -29,7 +29,7 @@
  *
  * 3. Handle it in the block toolbar click handler (Section 5).
  *
- * 4. Add the read-only renderer to render.js and blank.renderer.js.
+ * 4. Add the read-only renderer to render.js and text.renderer.js.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -42,17 +42,17 @@
 
   const MEDIA_PROMPT_TEXT      = 'Вставьте ссылку на изображение, YouTube, VK Video или RuTube и нажмите Enter';
   const DEFAULT_P_PLACEHOLDER  = 'Начните писать...';
-  const PAGE_PADDING_PX        = 24; // must match .bs_page { padding-left }
+  const PAGE_PADDING_PX        = 24; // must match .bt_page { padding-left }
 
   /**
    * Block type registry.
    * Each entry maps a node type name → { renderEditable, serialize, resolveTarget }.
    *
-   * renderEditable(node: BlankNode): string
+   * renderEditable(node: TextNode): string
    *   Returns the editor-mode HTML for this node.
    *
-   * serialize(element: Element): BlankNode | null
-   *   Extracts a BlankNode from the live DOM element.
+   * serialize(element: Element): TextNode | null
+   *   Extracts a TextNode from the live DOM element.
    *
    * resolveTarget(element: Element): Element | null
    *   Returns the focusable Element inside the block for Tab navigation.
@@ -111,9 +111,9 @@
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
-    const bootNode = document.getElementById('bs_boot');
+    const bootNode = document.getElementById('bt_boot');
     const boot     = bootNode ? JSON.parse(bootNode.textContent || '{}') : {};
-    const host     = document.getElementById('bs_editor_host');
+    const host     = document.getElementById('bt_editor_host');
     if (!host) return;
 
     const env = makeEnv(host, boot);
@@ -126,8 +126,8 @@
       return;
     }
 
-    if (env.state.blank) {
-      global.BlanksyAccess.bootstrapForBlank(env.state.blank)
+    if (env.state.text) {
+      global.BytextAccess.bootstrapForText(env.state.text)
         .then((grant) => {
           if (!grant) return;
           env.state.accessToken = grant.accessToken;
@@ -145,23 +145,23 @@
       boot,
       state: {
         mode:         boot.mode  || 'new',
-        blank:        boot.blank || null,
+        text:        boot.text || null,
         accessToken:  null,
         accessUrl:    null,
         savedRange:   null,
       },
       controls: {
-        editButton:        document.getElementById('bs_edit_button'),
-        publishButton:     document.getElementById('bs_publish_button'),
-        saveButton:        document.getElementById('bs_save_button'),
-        copyAccessButton:  document.getElementById('bs_copy_access_button'),
-        errorBox:          document.getElementById('bs_error_msg'),
-        statusPanel:       document.getElementById('bs_status_panel'),
-        textToolbar:       document.getElementById('bs_text_toolbar'),
-        blockToolbar:      document.getElementById('bs_blocks'),
-        linkTooltip:       document.getElementById('bs_link_tooltip'),
+        editButton:        document.getElementById('bt_edit_button'),
+        publishButton:     document.getElementById('bt_publish_button'),
+        saveButton:        document.getElementById('bt_save_button'),
+        copyAccessButton:  document.getElementById('bt_copy_access_button'),
+        errorBox:          document.getElementById('bt_error_msg'),
+        statusPanel:       document.getElementById('bt_status_panel'),
+        textToolbar:       document.getElementById('bt_text_toolbar'),
+        blockToolbar:      document.getElementById('bt_blocks'),
+        linkTooltip:       document.getElementById('bt_link_tooltip'),
       },
-      editorRoot: document.getElementById('bs_editor_root'),
+      editorRoot: document.getElementById('bt_editor_root'),
     };
   }
 
@@ -178,25 +178,25 @@
       clearError(env);
       try {
         const payload = serializeEditor(env, false);
-        const created = await global.BlanksyApi.createBlank(payload);
-        global.BlanksyAccess.saveAccessToken(created.blank.id, created.accessToken);
-        global.BlanksyAccess.rememberKnownBlank({
-          blankId: created.blank.id,
-          path:    created.blank.path,
-          title:   created.blank.title,
+        const created = await global.BytextApi.createText(payload);
+        global.BytextAccess.saveAccessToken(created.text.id, created.accessToken);
+        global.BytextAccess.rememberKnownText({
+          textId: created.text.id,
+          path:    created.text.path,
+          title:   created.text.title,
           updatedAt: new Date().toISOString(),
         });
         env.state.accessToken = created.accessToken;
         env.state.accessUrl   = created.accessUrl;
 
-        const fresh = await global.BlanksyApi.getBlank(created.blank.path, created.accessToken);
-        env.state.blank = fresh.blank;
+        const fresh = await global.BytextApi.getText(created.text.path, created.accessToken);
+        env.state.text = fresh.text;
         env.state.mode  = 'view';
-        history.replaceState({}, '', `/${fresh.blank.path}`);
+        history.replaceState({}, '', `/${fresh.text.path}`);
 
-        renderReadOnly(env, fresh.blank);
+        renderReadOnly(env, fresh.text);
         showPublishSuccess(env,
-          `${window.location.origin}/${fresh.blank.path}`,
+          `${window.location.origin}/${fresh.text.path}`,
           created.accessUrl,
         );
         hideControl(env.controls.publishButton);
@@ -213,11 +213,11 @@
       clearError(env);
       try {
         const payload = serializeEditor(env, false);
-        await global.BlanksyApi.updateBlank(env.state.blank.id, payload, env.state.accessToken);
-        const fresh = await global.BlanksyApi.getBlank(env.state.blank.path, env.state.accessToken);
-        env.state.blank = fresh.blank;
+        await global.BytextApi.updateText(env.state.text.id, payload, env.state.accessToken);
+        const fresh = await global.BytextApi.getText(env.state.text.path, env.state.accessToken);
+        env.state.text = fresh.text;
 
-        renderReadOnly(env, fresh.blank);
+        renderReadOnly(env, fresh.text);
         hideControl(env.controls.saveButton);
         hideControl(env.controls.publishButton);
         showControl(env.controls.editButton);
@@ -232,9 +232,9 @@
     env.controls.editButton?.addEventListener('click', async () => {
       clearError(env);
       try {
-        const fresh = await global.BlanksyApi.getBlank(env.state.blank.path, env.state.accessToken);
-        env.state.blank = fresh.blank;
-        hydrateEditor(env, fresh.blank);
+        const fresh = await global.BytextApi.getText(env.state.text.path, env.state.accessToken);
+        env.state.text = fresh.text;
+        hydrateEditor(env, fresh.text);
         hideControl(env.controls.editButton);
         hideControl(env.controls.publishButton);
         showControl(env.controls.saveButton);
@@ -307,19 +307,19 @@
      4. Render
      ═══════════════════════════════════════════════════════════════════════════ */
 
-  function renderReadOnly(env, blank) {
-    env.host.innerHTML = global.BlanksyRender.renderBlank(blank);
+  function renderReadOnly(env, text) {
+    env.host.innerHTML = global.BytextRender.renderText(text);
     env.editorRoot = null;
     hideSelectionUi(env);
   }
 
-  function hydrateEditor(env, blank) {
-    env.host.innerHTML = buildEditorHtml(blank);
-    env.editorRoot     = document.getElementById('bs_editor_root');
+  function hydrateEditor(env, text) {
+    env.host.innerHTML = buildEditorHtml(text);
+    env.editorRoot     = document.getElementById('bt_editor_root');
     bindEditorEvents(env);
     refreshPlaceholders(env.editorRoot);
     // Show correct action buttons
-    blank ? showControl(env.controls.saveButton) : showControl(env.controls.publishButton);
+    text ? showControl(env.controls.saveButton) : showControl(env.controls.publishButton);
     hideControl(env.controls.editButton);
     // Ensure trailing empty paragraph, then collapse any accumulated duplicates.
     // Order matters: ensureTrailing adds a paragraph, collapse may remove if prev is also empty.
@@ -345,13 +345,13 @@
 
   // ── Editor HTML builders ──────────────────────────────────────────────────
 
-  function buildEditorHtml(blank) {
-    const title     = blank?.title     || '';
-    const signature = blank?.signature || '';
-    const body      = blank?.body?.length ? blank.body : [{ type: 'paragraph', children: [] }];
+  function buildEditorHtml(text) {
+    const title     = text?.title     || '';
+    const signature = text?.signature || '';
+    const body      = text?.body?.length ? text.body : [{ type: 'paragraph', children: [] }];
 
     return `
-      <div class="bs_editor" id="bs_editor_root" contenteditable="true">
+      <div class="bt_editor" id="bt_editor_root" contenteditable="true">
         <h1 data-role="title" data-placeholder="Заголовок">${inlineHtml(title) || '<br>'}</h1>
         <address data-role="signature" data-placeholder="Ваше имя">${inlineHtml(signature) || '<br>'}</address>
         ${body.map(renderEditableBlock).join('')}
@@ -493,7 +493,7 @@
       e.preventDefault();
       clearError(env);
       const text   = block.textContent.trim();
-      const parsed = global.BlanksyMedia.parseMediaUrl(text);
+      const parsed = global.BytextMedia.parseMediaUrl(text);
       if (parsed) {
         insertMediaBlock(env, block, parsed);
       } else if (text) {
@@ -514,7 +514,7 @@
 
     // Detect an auto-recognised media URL in a plain paragraph on Enter
     if (block.matches('p') && e.key === 'Enter') {
-      const parsed = global.BlanksyMedia.parseMediaUrl(block.textContent.trim());
+      const parsed = global.BytextMedia.parseMediaUrl(block.textContent.trim());
       if (parsed) {
         e.preventDefault();
         clearError(env);
@@ -538,7 +538,7 @@
 
 
   /* ═══════════════════════════════════════════════════════════════════════════
-     6. Serialization  (DOM → BlankNode[])
+     6. Serialization  (DOM → TextNode[])
      ═══════════════════════════════════════════════════════════════════════════ */
 
   function serializeEditor(env, allowIncomplete) {
@@ -717,9 +717,9 @@
     updateBlockToolbar(env, sel);
   }
 
-  /** Viewport X of the left edge of .bs_page (toolbars use page-relative coords) */
+  /** Viewport X of the left edge of .bt_page (toolbars use page-relative coords) */
   function pageLeft() {
-    return Math.max(0, document.querySelector('.bs_page')?.getBoundingClientRect().left ?? 0);
+    return Math.max(0, document.querySelector('.bt_page')?.getBoundingClientRect().left ?? 0);
   }
 
   function updateTextToolbar(env, sel) {
@@ -809,7 +809,7 @@
   }
 
   /**
-   * Sets bs_tool_active and bs_tool_mixed classes on a toolbar button.
+   * Sets bt_tool_active and bt_tool_mixed classes on a toolbar button.
    * 'active'   → solid highlight
    * 'mixed'    → dimmer highlight (partial selection)
    * 'inactive' → no highlight
@@ -817,8 +817,8 @@
   function setButtonState(toolbar, selector, state) {
     const btn = toolbar.querySelector(selector);
     if (!btn) return;
-    btn.classList.toggle('bs_tool_active', state === 'active');
-    btn.classList.toggle('bs_tool_mixed',  state === 'mixed');
+    btn.classList.toggle('bt_tool_active', state === 'active');
+    btn.classList.toggle('bt_tool_mixed',  state === 'mixed');
   }
 
   function updateBlockToolbar(env, sel) {
@@ -831,7 +831,7 @@
 
     // Reflect media-prompt toggle state on the button
     toolbar.querySelector('[data-insert="media"]')
-      ?.classList.toggle('bs_tool_active', paragraph.dataset.mediaPrompt === 'true');
+      ?.classList.toggle('bt_tool_active', paragraph.dataset.mediaPrompt === 'true');
 
     const rect = paragraph.getBoundingClientRect();
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -899,14 +899,14 @@
     // appears directly under the selected text regardless of toolbar position.
     const selRect   = env.state.savedRange.getBoundingClientRect();
     const pl        = pageLeft();
-    const pageEl    = document.querySelector('.bs_page');
+    const pageEl    = document.querySelector('.bt_page');
     const pageWidth = pageEl?.offsetWidth || 760;
     const maxW      = Math.min(440, pageWidth - 16);
     const rawLeft   = window.scrollX + selRect.left - pl;
 
     env.controls.linkTooltip.hidden = false;
     env.controls.linkTooltip.innerHTML = `
-      <div class="bs_link_prompt">
+      <div class="bt_link_prompt">
         <input type="url" placeholder="Вставьте ссылку..." autocomplete="off"
                value="${esc(currentHref)}">
         <button type="button" data-action="close-link" aria-label="Закрыть">×</button>
@@ -940,7 +940,7 @@
       // Empty field → remove any existing link
       document.execCommand('unlink', false);
     } else {
-      const safe = global.BlanksyMedia.parseHttpUrl(href);
+      const safe = global.BytextMedia.parseHttpUrl(href);
       if (!safe) {
         showError(env, 'Ссылка должна быть публичным http/https URL');
         return;
@@ -1034,7 +1034,7 @@
    * rather than showing an error — the user knows what they pasted.
    */
   function insertLinkBlock(env, paragraph, url) {
-    const safe = global.BlanksyMedia.parseHttpUrl(url);
+    const safe = global.BytextMedia.parseHttpUrl(url);
     const href = safe ? safe.toString() : url;
 
     delete paragraph.dataset.mediaPrompt;
@@ -1221,27 +1221,27 @@
     const panel = env.controls.statusPanel;
     panel.hidden = false;
     panel.innerHTML = `
-      <div class="bs_status_title">Blank опубликован</div>
-      <div class="bs_url_row">
-        <input type="text" class="bs_status_url" readonly value="${esc(publicUrl)}" onclick="this.select()" title="Публичная ссылка">
+      <div class="bt_status_title">Текст опубликован</div>
+      <div class="bt_url_row">
+        <input type="text" class="bt_status_url" readonly value="${esc(publicUrl)}" onclick="this.select()" title="Публичная ссылка">
         ${copyBtn(publicUrl)}
       </div>
-      <p class="bs_status_hint bs_status_hint--accent">Ссылка доступа — сохраните!</p>
-      <div class="bs_url_row">
-        <input type="text" class="bs_status_url" data-role="access-url" readonly value="${esc(accessUrl)}" onclick="this.select()" title="Ссылка доступа">
+      <p class="bt_status_hint bt_status_hint--accent">Ссылка доступа — сохраните!</p>
+      <div class="bt_url_row">
+        <input type="text" class="bt_status_url" data-role="access-url" readonly value="${esc(accessUrl)}" onclick="this.select()" title="Ссылка доступа">
         ${copyBtn(accessUrl)}
       </div>
-      <p class="bs_status_hint">Без неё редактировать можно только с этого устройства.</p>
-      <p class="bs_clipboard_hint" hidden></p>
+      <p class="bt_status_hint">Без неё редактировать можно только с этого устройства.</p>
+      <p class="bt_clipboard_hint" hidden></p>
     `;
-    panel.querySelectorAll('.bs_copy_url_btn').forEach((btn) => {
+    panel.querySelectorAll('.bt_copy_url_btn').forEach((btn) => {
       btn.addEventListener('click', () => handleCopyBtn(btn, panel));
     });
   }
 
   function copyBtn(url) {
     return `
-      <button type="button" class="bs_copy_url_btn" data-url="${esc(url)}" title="Скопировать">
+      <button type="button" class="bt_copy_url_btn" data-url="${esc(url)}" title="Скопировать">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/>
@@ -1253,12 +1253,12 @@
     const url = btn.dataset.url;
     try {
       await navigator.clipboard.writeText(url);
-      btn.classList.add('bs_copy_url_btn--done');
-      setTimeout(() => btn.classList.remove('bs_copy_url_btn--done'), 1500);
+      btn.classList.add('bt_copy_url_btn--done');
+      setTimeout(() => btn.classList.remove('bt_copy_url_btn--done'), 1500);
     } catch {
       const input = btn.previousElementSibling;
       input?.focus(); input?.select();
-      const hint = panel?.querySelector('.bs_clipboard_hint');
+      const hint = panel?.querySelector('.bt_clipboard_hint');
       if (hint) { hint.textContent = 'Скопируйте вручную'; hint.removeAttribute('hidden'); }
     }
   }
@@ -1266,15 +1266,15 @@
   function showPublishSuccessFallback(env) {
     const input = env.controls.statusPanel?.querySelector('input[data-role="access-url"]');
     input?.focus(); input?.select();
-    const hint = env.controls.statusPanel?.querySelector('.bs_clipboard_hint');
+    const hint = env.controls.statusPanel?.querySelector('.bt_clipboard_hint');
     if (hint) { hint.textContent = 'Скопируйте ссылку вручную'; hint.removeAttribute('hidden'); }
   }
 
   function flashCopyButton(panel, url) {
-    const btn = panel?.querySelector(`.bs_copy_url_btn[data-url="${url}"]`);
+    const btn = panel?.querySelector(`.bt_copy_url_btn[data-url="${url}"]`);
     if (!btn) return;
-    btn.classList.add('bs_copy_url_btn--done');
-    setTimeout(() => btn.classList.remove('bs_copy_url_btn--done'), 1500);
+    btn.classList.add('bt_copy_url_btn--done');
+    setTimeout(() => btn.classList.remove('bt_copy_url_btn--done'), 1500);
   }
 
   function clearError(env) {

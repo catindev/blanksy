@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 
 let pool;
-const DEFAULT_DATABASE_URL = 'postgres://blanksy:blanksy@localhost:5432/blanksy';
+const DEFAULT_DATABASE_URL = 'postgres://bytext:bytext@localhost:5432/bytext';
 
 function getPool() {
   if (!pool) {

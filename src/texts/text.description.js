@@ -40,7 +40,7 @@ function nodeText(node) {
   return inlineTextLength(node.children || []);
 }
 
-function buildBlankDescription(body) {
+function buildTextDescription(body) {
   const plain = body
     .map(nodeText)
     .join(' ')
@@ -64,6 +64,6 @@ function findCoverImageUrl(body) {
 }
 
 module.exports = {
-  buildBlankDescription,
+  buildTextDescription,
   findCoverImageUrl,
 };

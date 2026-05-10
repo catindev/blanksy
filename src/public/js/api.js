@@ -6,7 +6,7 @@
     400:         'Некорректные данные. Проверьте заполненные поля.',
     401:         'Нет доступа. Ссылка доступа недействительна или устарела.',
     403:         'Нет доступа. Возможно, ссылка доступа устарела или недействительна.',
-    404:         'Blank не найден.',
+    404:         'Текст не найден.',
     409:         'Конфликт данных. Попробуйте обновить страницу.',
     413:         'Слишком большой объём данных.',
     429:         'Слишком много запросов. Подождите немного и попробуйте снова.',
@@ -54,23 +54,23 @@
     return { ...headers, Authorization: `Bearer ${accessToken}` };
   }
 
-  global.BlanksyApi = {
-    createBlank(documentPayload) {
-      return requestJson('/api/blanks', {
+  global.BytextApi = {
+    createText(documentPayload) {
+      return requestJson('/api/texts', {
         method: 'POST',
         headers: withJsonHeaders(),
         body: JSON.stringify(documentPayload),
       });
     },
 
-    getBlank(path, accessToken) {
-      return requestJson(`/api/blanks/${encodeURIComponent(path)}`, {
+    getText(path, accessToken) {
+      return requestJson(`/api/texts/${encodeURIComponent(path)}`, {
         headers: withAccessToken({}, accessToken),
       });
     },
 
-    updateBlank(blankId, documentPayload, accessToken) {
-      return requestJson(`/api/blanks/${encodeURIComponent(blankId)}`, {
+    updateText(textId, documentPayload, accessToken) {
+      return requestJson(`/api/texts/${encodeURIComponent(textId)}`, {
         method: 'PATCH',
         headers: withAccessToken(withJsonHeaders(), accessToken),
         body: JSON.stringify(documentPayload),
@@ -78,7 +78,7 @@
     },
 
     verifyAccess(path, accessToken) {
-      return requestJson(`/api/blanks/${encodeURIComponent(path)}/access/verify`, {
+      return requestJson(`/api/texts/${encodeURIComponent(path)}/access/verify`, {
         method: 'POST',
         headers: withJsonHeaders(),
         body: JSON.stringify({ accessToken }),

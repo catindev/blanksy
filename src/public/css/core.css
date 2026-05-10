@@ -1,5 +1,5 @@
 /* ============================================================
-   Blanksy — core.css  v1.2.0
+   Bytext — core.css  v2.0.0
 
    Sections:
      1. Design Tokens
@@ -19,32 +19,32 @@
 
 :root {
   /* Colours */
-  --bs-bg: #fff;
-  --bs-text: #2f3033;
-  --bs-muted: #7f8994;
-  --bs-soft: #aaa49c;
-  --bs-line: #dedbd4;
-  --bs-line-strong: #343434;
+  --bt-bg: #fff;
+  --bt-text: #2f3033;
+  --bt-muted: #7f8994;
+  --bt-soft: #aaa49c;
+  --bt-line: #dedbd4;
+  --bt-line-strong: #343434;
 
   /* Toolbar */
-  --bs-toolbar-bg: #2b2a27;
-  --bs-toolbar-fg: #fffaf4;
-  --bs-toolbar-hover: rgba(255, 255, 255, 0.16);
-  --bs-toolbar-active: rgba(255, 255, 255, 0.28);
+  --bt-toolbar-bg: #2b2a27;
+  --bt-toolbar-fg: #fffaf4;
+  --bt-toolbar-hover: rgba(255, 255, 255, 0.16);
+  --bt-toolbar-active: rgba(255, 255, 255, 0.28);
 
   /* Typography */
-  --bs-font-ui:
+  --bt-font-ui:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-  --bs-font-text: Georgia, "Times New Roman", serif;
-  --bs-font-mono: "SFMono-Regular", Menlo, Consolas, monospace;
+  --bt-font-text: Georgia, "Times New Roman", serif;
+  --bt-font-mono: "SFMono-Regular", Menlo, Consolas, monospace;
 
   /* Spacing */
-  --bs-block-gap: 26px;
-  --bs-figure-gap: 32px;
+  --bt-block-gap: 26px;
+  --bt-figure-gap: 32px;
 
   /* Shadows */
-  --bs-shadow: 0 16px 42px rgba(34, 34, 34, 0.1);
-  --bs-shadow-toolbar: 0 14px 44px rgba(0, 0, 0, 0.24);
+  --bt-shadow: 0 16px 42px rgba(34, 34, 34, 0.1);
+  --bt-shadow-toolbar: 0 14px 44px rgba(0, 0, 0, 0.24);
 }
 
 /* ── 2. Reset & Base ───────────────────────────────────────── */
@@ -60,12 +60,12 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: var(--bs-bg);
-  color: var(--bs-text);
+  background: var(--bt-bg);
+  color: var(--bt-text);
 }
 
 body {
-  font-family: var(--bs-font-text);
+  font-family: var(--bt-font-text);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -78,116 +78,116 @@ a {
 
 /* ── 3. Layout ─────────────────────────────────────────────── */
 
-.bs_page_wrap {
+.bt_page_wrap {
   width: 100%;
 }
 
-.bs_page {
+.bt_page {
   max-width: 760px;
   margin: 0 auto;
   padding: 52px 24px 84px;
   position: relative; /* containing block for absolute toolbars */
 }
 
-.bs_blank {
+.bt_text {
   width: 100%;
 }
 
 /* min-height only in editor mode so the click target exists */
-.bs_blank_host {
+.bt_text_host {
 }
-.bs_blank_host--editor {
+.bt_text_host--editor {
   min-height: 18rem;
 }
 
 /* ── 4. Article Typography ─────────────────────────────────── */
 
 /* Title */
-.bs_blank_header h1,
-.bs_editor h1[data-role="title"] {
+.bt_text_header h1,
+.bt_editor h1[data-role="title"] {
   margin: 0;
-  font-family: var(--bs-font-ui);
+  font-family: var(--bt-font-ui);
   font-size: clamp(2rem, 4vw, 2.8rem);
   font-weight: 750;
   line-height: 1.08;
   letter-spacing: -0.035em;
-  color: var(--bs-text);
+  color: var(--bt-text);
 }
 
 /* Byline / signature */
-.bs_blank_header address,
-.bs_editor address[data-role="signature"] {
+.bt_text_header address,
+.bt_editor address[data-role="signature"] {
   margin: 16px 0 38px;
   font-style: normal;
-  font-family: var(--bs-font-ui);
+  font-family: var(--bt-font-ui);
   font-size: clamp(1rem, 2vw, 1.22rem);
   font-weight: 650;
-  color: var(--bs-muted);
+  color: var(--bt-muted);
 }
 
-.bs_blank_header address {
+.bt_text_header address {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 7px;
 }
 
-.bs_meta_separator {
+.bt_meta_separator {
   margin: 0 2px;
   color: #a4abb3;
 }
 
 /* Body text */
-.bs_blank_content,
-.bs_editor {
-  font-family: var(--bs-font-text);
+.bt_text_content,
+.bt_editor {
+  font-family: var(--bt-font-text);
   font-size: clamp(1.35rem, 2vw, 1.72rem);
   line-height: 1.58;
 }
 
 /* Block margins — all content blocks share the same bottom gap */
-.bs_blank_content p,
-.bs_editor p,
-.bs_blank_content h2,
-.bs_editor h2,
-.bs_blank_content h3,
-.bs_editor h3,
-.bs_blank_content blockquote,
-.bs_editor blockquote,
-.bs_blank_content ul,
-.bs_editor ul,
-.bs_blank_content ol,
-.bs_editor ol,
-.bs_blank_content pre,
-.bs_editor pre {
-  margin: 0 0 var(--bs-block-gap);
+.bt_text_content p,
+.bt_editor p,
+.bt_text_content h2,
+.bt_editor h2,
+.bt_text_content h3,
+.bt_editor h3,
+.bt_text_content blockquote,
+.bt_editor blockquote,
+.bt_text_content ul,
+.bt_editor ul,
+.bt_text_content ol,
+.bt_editor ol,
+.bt_text_content pre,
+.bt_editor pre {
+  margin: 0 0 var(--bt-block-gap);
 }
 
 /* Headings */
-.bs_blank_content h2,
-.bs_editor h2 {
+.bt_text_content h2,
+.bt_editor h2 {
   font-size: 1.55em;
   line-height: 1.2;
   font-weight: 700;
 }
-.bs_blank_content h3,
-.bs_editor h3 {
+.bt_text_content h3,
+.bt_editor h3 {
   font-size: 1.22em;
   line-height: 1.25;
   font-weight: 700;
 }
 
 /* Blockquote */
-.bs_blank_content blockquote,
-.bs_editor blockquote {
+.bt_text_content blockquote,
+.bt_editor blockquote {
   padding-left: 18px;
   border-left: 3px solid #d7d1c5;
   color: #5e574e;
 }
 
 /* Code block */
-.bs_blank_content pre,
-.bs_editor pre {
+.bt_text_content pre,
+.bt_editor pre {
   padding: 16px 18px;
   border-radius: 12px;
   background: #f6f6f6;
@@ -196,60 +196,60 @@ a {
   overflow-x: auto;
 }
 
-.bs_blank_content code,
-.bs_editor code {
-  font-family: var(--bs-font-mono);
+.bt_text_content code,
+.bt_editor code {
+  font-family: var(--bt-font-mono);
   font-size: 0.9em;
 }
 
 /* Lists */
-.bs_blank_content ul,
-.bs_blank_content ol,
-.bs_editor ul,
-.bs_editor ol {
+.bt_text_content ul,
+.bt_text_content ol,
+.bt_editor ul,
+.bt_editor ol {
   padding-left: 30px;
 }
 
 /* Divider */
-.bs_blank hr,
-.bs_editor hr {
+.bt_text hr,
+.bt_editor hr {
   border: 0;
-  border-top: 1px solid var(--bs-line);
+  border-top: 1px solid var(--bt-line);
   margin: 30px 0;
 }
 
 /* ── 5. Editor Overrides ───────────────────────────────────── */
 
-.bs_editor {
+.bt_editor {
   outline: none;
   caret-color: #222;
 }
 
 /* Non-editable islands inside the editor (figure wrappers, etc.) */
-.bs_editor [contenteditable="false"] {
+.bt_editor [contenteditable="false"] {
   cursor: default;
 }
 
 /* Kill default outlines on editable elements */
-.bs_editor h1,
-.bs_editor address,
-.bs_editor p,
-.bs_editor h2,
-.bs_editor h3,
-.bs_editor blockquote,
-.bs_editor figcaption {
+.bt_editor h1,
+.bt_editor address,
+.bt_editor p,
+.bt_editor h2,
+.bt_editor h3,
+.bt_editor blockquote,
+.bt_editor figcaption {
   outline: none;
 }
 
 /* Placeholder pseudo-elements */
-.bs_editor [data-placeholder],
-.bs_editor figcaption[data-placeholder] {
+.bt_editor [data-placeholder],
+.bt_editor figcaption[data-placeholder] {
   position: relative;
 }
 
-.bs_editor .empty::before {
+.bt_editor .empty::before {
   content: attr(data-placeholder);
-  color: var(--bs-soft);
+  color: var(--bt-soft);
   pointer-events: none;
   position: absolute;
   left: 0;
@@ -258,26 +258,26 @@ a {
 }
 
 /* Title and signature placeholders are inline (not absolute) */
-.bs_editor h1.empty::before,
-.bs_editor address.empty::before {
+.bt_editor h1.empty::before,
+.bt_editor address.empty::before {
   position: static;
 }
 
 /* Media-prompt paragraph has a slightly dimmer placeholder */
-.bs_editor p[data-media-prompt="true"]::before {
+.bt_editor p[data-media-prompt="true"]::before {
   color: #9f9991;
 }
 
 /* Промежуточные пустые параграфы не показывают плейсхолдер —
    он нужен только на последнем блоке. Медиа-промпт исключён. */
-.bs_editor p.empty:not(:last-child):not([data-media-prompt])::before {
+.bt_editor p.empty:not(:last-child):not([data-media-prompt])::before {
   content: none;
 }
 
 /* ── 6. Controls ───────────────────────────────────────────── */
 
 /* Fixed panel in the top-right corner */
-.bs_blank_buttons {
+.bt_text_buttons {
   position: fixed;
   top: 42px;
   right: max(24px, calc(50vw - 760px));
@@ -292,12 +292,12 @@ a {
 
 /* Base pill button */
 .button {
-  border: 2px solid var(--bs-line-strong);
+  border: 2px solid var(--bt-line-strong);
   border-radius: 999px;
-  background: var(--bs-bg);
+  background: var(--bt-bg);
   color: #111;
   padding: 9px 19px;
-  font-family: var(--bs-font-ui);
+  font-family: var(--bt-font-ui);
   font-size: 0.9rem;
   font-weight: 750;
   letter-spacing: 0.01em;
@@ -314,7 +314,7 @@ a {
 
 /* Save button gets a filled black treatment to stand out */
 .save_button {
-  background: var(--bs-line-strong);
+  background: var(--bt-line-strong);
   color: #fff;
 }
 .save_button:hover {
@@ -323,36 +323,36 @@ a {
 
 /* ── 7. Status Panel ───────────────────────────────────────── */
 
-.bs_status_panel,
+.bt_status_panel,
 .error_msg {
   width: min(300px, 86vw);
   padding: 13px 15px;
   border-radius: 14px;
-  background: var(--bs-bg);
+  background: var(--bt-bg);
   border: 1px solid #f0efeb;
-  box-shadow: var(--bs-shadow);
-  font-family: var(--bs-font-ui);
+  box-shadow: var(--bt-shadow);
+  font-family: var(--bt-font-ui);
   font-size: 0.9rem;
   line-height: 1.45;
 }
-.bs_status_panel[hidden],
+.bt_status_panel[hidden],
 .error_msg[hidden] {
   display: none;
 }
-.bs_status_panel p {
+.bt_status_panel p {
   margin: 7px 0 0;
 }
 
-.bs_status_title {
+.bt_status_title {
   display: block;
   font-weight: 750;
   margin-bottom: 2px;
 }
-.bs_status_hint {
-  color: var(--bs-muted);
+.bt_status_hint {
+  color: var(--bt-muted);
   font-size: 0.84rem;
 }
-.bs_status_hint--accent {
+.bt_status_hint--accent {
   color: #7a4200;
   font-weight: 600;
 }
@@ -361,114 +361,114 @@ a {
   color: #8c1d28;
 }
 
-.bs_clipboard_hint {
+.bt_clipboard_hint {
   color: #8c1d28;
   font-size: 0.82rem;
   margin-top: 6px;
 }
-.bs_clipboard_hint[hidden] {
+.bt_clipboard_hint[hidden] {
   display: none;
 }
 
 /* URL rows inside publish-success panel */
-.bs_url_row {
+.bt_url_row {
   display: flex;
   align-items: center;
   gap: 6px;
   margin: 5px 0 0;
 }
-.bs_url_row .bs_status_url {
+.bt_url_row .bt_status_url {
   margin: 0;
   flex: 1;
   min-width: 0;
 }
 
-.bs_status_url {
+.bt_status_url {
   display: block;
   width: 100%;
   margin: 5px 0 0;
   padding: 7px 10px;
-  border: 1px solid var(--bs-line);
+  border: 1px solid var(--bt-line);
   border-radius: 8px;
   font-size: 0.78rem;
-  font-family: var(--bs-font-mono);
-  color: var(--bs-text);
+  font-family: var(--bt-font-mono);
+  color: var(--bt-text);
   background: #fafaf8;
   cursor: text;
 }
 
 /* Copy-to-clipboard icon button inside url rows */
-.bs_copy_url_btn {
+.bt_copy_url_btn {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 30px;
   height: 30px;
-  border: 1px solid var(--bs-line);
+  border: 1px solid var(--bt-line);
   border-radius: 7px;
-  background: var(--bs-bg);
-  color: var(--bs-muted);
+  background: var(--bt-bg);
+  color: var(--bt-muted);
   cursor: pointer;
   transition:
     background 0.15s,
     color 0.15s,
     border-color 0.15s;
 }
-.bs_copy_url_btn:hover {
+.bt_copy_url_btn:hover {
   background: #f5f5f3;
-  color: var(--bs-text);
+  color: var(--bt-text);
   border-color: #bbb;
 }
-.bs_copy_url_btn--done {
+.bt_copy_url_btn--done {
   background: #e8f5e9;
   color: #2e7d32;
   border-color: #a5d6a7;
 }
-.bs_copy_url_btn svg {
+.bt_copy_url_btn svg {
   display: block;
 }
 
 /* ── 8. Toolbars ───────────────────────────────────────────── */
 
 /* Shared positioning context */
-.bs_tooltip,
-.bs_blocks,
-.bs_link_tooltip {
+.bt_tooltip,
+.bt_blocks,
+.bt_link_tooltip {
   position: absolute;
   z-index: 40;
 }
 
 /* Shared dark-pill shell */
-.bs_tooltip,
-.bs_blocks {
+.bt_tooltip,
+.bt_blocks {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 9px 10px;
   border-radius: 12px;
-  background: var(--bs-toolbar-bg);
-  color: var(--bs-toolbar-fg);
-  box-shadow: var(--bs-shadow-toolbar);
+  background: var(--bt-toolbar-bg);
+  color: var(--bt-toolbar-fg);
+  box-shadow: var(--bt-shadow-toolbar);
 }
 
 /* Text toolbar is horizontally centered on the selection */
-.bs_tooltip {
+.bt_tooltip {
   transform: translateX(-50%);
 }
 
-.bs_tooltip[hidden],
-.bs_blocks[hidden],
-.bs_link_tooltip[hidden] {
+.bt_tooltip[hidden],
+.bt_blocks[hidden],
+.bt_link_tooltip[hidden] {
   display: none;
 }
 
 /* Individual tool button */
-.bs_tool_button {
+.bt_tool_button {
   border: 0;
   background: transparent;
   color: inherit;
-  font-family: var(--bs-font-ui);
+  font-family: var(--bt-font-ui);
   font-size: 0.86rem;
   font-weight: 750;
   cursor: pointer;
@@ -482,27 +482,27 @@ a {
   line-height: 1;
   transition: background 0.1s;
 }
-.bs_tool_button:hover,
-.bs_tool_button:focus {
-  background: var(--bs-toolbar-hover);
+.bt_tool_button:hover,
+.bt_tool_button:focus {
+  background: var(--bt-toolbar-hover);
   outline: none;
 }
-.bs_tool_button.bs_tool_active {
-  background: var(--bs-toolbar-active);
+.bt_tool_button.bt_tool_active {
+  background: var(--bt-toolbar-active);
   box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.5);
 }
 /* Mixed state: part of selection has this format, part doesn't */
-.bs_tool_button.bs_tool_mixed {
+.bt_tool_button.bt_tool_mixed {
   background: rgba(255, 255, 255, 0.14);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   opacity: 0.8;
 }
 
-.bs_tool_button svg {
+.bt_tool_button svg {
   display: block;
   flex-shrink: 0;
 }
-.bs_button_label {
+.bt_button_label {
   display: inline-block;
   font-size: 0.9rem;
   font-weight: 800;
@@ -510,7 +510,7 @@ a {
 }
 
 /* Visual separator between groups within a toolbar */
-.bs_toolbar_sep {
+.bt_toolbar_sep {
   width: 1px;
   height: 18px;
   background: rgba(255, 255, 255, 0.2);
@@ -519,38 +519,38 @@ a {
 }
 
 /* Block-toolbar buttons are slightly larger than text-toolbar buttons */
-.bs_block_btn {
+.bt_block_btn {
   min-width: 34px;
   min-height: 34px;
   padding: 6px 8px;
 }
 
 /* Link prompt — inline URL input that appears below the text toolbar */
-.bs_link_prompt {
+.bt_link_prompt {
   display: flex;
   align-items: center;
   gap: 8px;
   width: min(420px, calc(100vw - 24px));
   padding: 11px 12px;
   border-radius: 12px;
-  background: var(--bs-toolbar-bg);
-  color: var(--bs-toolbar-fg);
-  box-shadow: var(--bs-shadow-toolbar);
+  background: var(--bt-toolbar-bg);
+  color: var(--bt-toolbar-fg);
+  box-shadow: var(--bt-shadow-toolbar);
 }
-.bs_link_prompt input {
+.bt_link_prompt input {
   flex: 1;
   min-width: 0;
   border: 0;
   outline: none;
   background: transparent;
   color: #fff;
-  font-family: var(--bs-font-ui);
+  font-family: var(--bt-font-ui);
   font-size: 1rem;
 }
-.bs_link_prompt input::placeholder {
+.bt_link_prompt input::placeholder {
   color: rgba(255, 255, 255, 0.55);
 }
-.bs_link_prompt button {
+.bt_link_prompt button {
   border: 0;
   background: transparent;
   color: #fff;
@@ -562,9 +562,9 @@ a {
 
 /* ── 9. Media Figures ──────────────────────────────────────── */
 
-.bs_blank figure,
-.bs_editor figure {
-  margin: 0 0 var(--bs-figure-gap);
+.bt_text figure,
+.bt_editor figure {
+  margin: 0 0 var(--bt-figure-gap);
   max-width: 100%;
 }
 
@@ -598,11 +598,11 @@ a {
 }
 
 /* Figure caption */
-.bs_blank figcaption,
-.bs_editor figcaption {
+.bt_text figcaption,
+.bt_editor figcaption {
   margin-top: 10px;
-  color: var(--bs-muted);
-  font-family: var(--bs-font-ui);
+  color: var(--bt-muted);
+  font-family: var(--bt-font-ui);
   font-size: 0.95rem;
   line-height: 1.45;
 }
@@ -612,32 +612,32 @@ a {
 /* ── 11. Responsive ────────────────────────────────────────── */
 
 @media (max-width: 1180px) {
-  .bs_blank_buttons {
+  .bt_text_buttons {
     right: 22px;
   }
 }
 
 @media (max-width: 980px) {
-  .bs_page {
+  .bt_page {
     padding-top: 88px;
   }
-  .bs_blank_buttons {
+  .bt_text_buttons {
     top: 18px;
     right: 18px;
     max-width: calc(100vw - 36px);
   }
-  .bs_status_panel,
+  .bt_status_panel,
   .error_msg {
     width: min(300px, calc(100vw - 36px));
   }
 }
 
 @media (max-width: 720px) {
-  .bs_page {
+  .bt_page {
     padding: 84px 18px 56px;
   }
 
-  .bs_blank_buttons {
+  .bt_text_buttons {
     left: 18px;
     right: 18px;
     top: 14px;
@@ -652,54 +652,54 @@ a {
     padding: 8px 14px;
     font-size: 0.82rem;
   }
-  .bs_status_panel,
+  .bt_status_panel,
   .error_msg {
     order: 10;
     width: 100%;
   }
 
-  .bs_blank_content,
-  .bs_editor {
+  .bt_text_content,
+  .bt_editor {
     font-size: 1.25rem;
     line-height: 1.62;
   }
 
-  .bs_blank_header h1,
-  .bs_blank_header h1,
-  .bs_editor h1[data-role="title"] {
+  .bt_text_header h1,
+  .bt_text_header h1,
+  .bt_editor h1[data-role="title"] {
     font-size: clamp(1.85rem, 9vw, 2.4rem);
     line-height: 1.1;
   }
 
-  .bs_blank_header address,
-  .bs_editor address[data-role="signature"] {
+  .bt_text_header address,
+  .bt_editor address[data-role="signature"] {
     margin: 12px 0 30px;
   }
 
   /* Text toolbar scrolls horizontally rather than clipping */
-  .bs_tooltip {
+  .bt_tooltip {
     max-width: calc(100vw - 24px);
     overflow-x: auto;
   }
 
   /* Block toolbar is slightly more compact on mobile */
-  .bs_blocks {
+  .bt_blocks {
     padding: 7px 8px;
     opacity: 0.96;
   }
 
-  .bs_link_prompt {
+  .bt_link_prompt {
     width: calc(100vw - 24px);
   }
 }
 
 @media (max-width: 420px) {
-  .bs_page {
+  .bt_page {
     padding-left: 14px;
     padding-right: 14px;
   }
-  .bs_blank_content,
-  .bs_editor {
+  .bt_text_content,
+  .bt_editor {
     font-size: 1.16rem;
   }
   .button {

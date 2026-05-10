@@ -1,8 +1,8 @@
 {
-  "name": "blanksy",
-  "version": "1.4.1",
+  "name": "bytext",
+  "version": "2.0.2",
   "private": true,
-  "description": "Minimal blank publishing service in the spirit of telegra.ph",
+  "description": "Minimal text publishing service in the spirit of telegra.ph",
   "main": "src/server.js",
   "engines": {
     "node": ">=20.0.0"

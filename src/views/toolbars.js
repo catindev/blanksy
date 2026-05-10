@@ -20,24 +20,24 @@ const ICON_MEDIA = `<svg width="20" height="20" viewBox="0 0 32 32" fill="none" 
 
 function renderTextToolbar() {
   return `
-    <div id="bs_text_toolbar" class="bs_tooltip" hidden role="toolbar" aria-label="Форматирование">
-      <button type="button" class="bs_tool_button" data-command="bold" aria-label="Полужирный" title="Полужирный">
-        <span class="bs_button_label">B</span>
+    <div id="bt_text_toolbar" class="bt_tooltip" hidden role="toolbar" aria-label="Форматирование">
+      <button type="button" class="bt_tool_button" data-command="bold" aria-label="Полужирный" title="Полужирный">
+        <span class="bt_button_label">B</span>
       </button>
-      <button type="button" class="bs_tool_button" data-command="italic" aria-label="Курсив" title="Курсив">
+      <button type="button" class="bt_tool_button" data-command="italic" aria-label="Курсив" title="Курсив">
         ${ICON_ITALIC}
       </button>
-      <button type="button" class="bs_tool_button" data-command="link" aria-label="Ссылка" title="Ссылка">
+      <button type="button" class="bt_tool_button" data-command="link" aria-label="Ссылка" title="Ссылка">
         ${ICON_LINK}
       </button>
-      <div class="bs_toolbar_sep" aria-hidden="true"></div>
-      <button type="button" class="bs_tool_button" data-command="heading" aria-label="Заголовок H2" title="Заголовок H2">
+      <div class="bt_toolbar_sep" aria-hidden="true"></div>
+      <button type="button" class="bt_tool_button" data-command="heading" aria-label="Заголовок H2" title="Заголовок H2">
         ${ICON_H2}
       </button>
-      <button type="button" class="bs_tool_button" data-command="subheading" aria-label="Подзаголовок H3" title="Подзаголовок H3">
+      <button type="button" class="bt_tool_button" data-command="subheading" aria-label="Подзаголовок H3" title="Подзаголовок H3">
         ${ICON_H3}
       </button>
-      <button type="button" class="bs_tool_button" data-command="quote" aria-label="Цитата" title="Цитата">
+      <button type="button" class="bt_tool_button" data-command="quote" aria-label="Цитата" title="Цитата">
         ${ICON_QUOTE}
       </button>
     </div>
@@ -46,8 +46,8 @@ function renderTextToolbar() {
 
 function renderBlockToolbar() {
   return `
-    <div id="bs_blocks" class="bs_blocks" hidden role="toolbar" aria-label="Вставить блок">
-      <button type="button" class="bs_tool_button bs_block_btn" data-insert="media" aria-label="Изображение или видео" title="Изображение или видео">
+    <div id="bt_blocks" class="bt_blocks" hidden role="toolbar" aria-label="Вставить блок">
+      <button type="button" class="bt_tool_button bt_block_btn" data-insert="media" aria-label="Изображение или видео" title="Изображение или видео">
         ${ICON_MEDIA}
       </button>
     </div>

@@ -125,7 +125,7 @@
     return parseImageUrl(input) || parseVideoUrl(input);
   }
 
-  global.BlanksyMedia = {
+  global.BytextMedia = {
     parseHttpUrl,
     parseImageUrl,
     parseVideoUrl,

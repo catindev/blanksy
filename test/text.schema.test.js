@@ -1,11 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { validateBlankInput } = require('../src/blanks/blank.schema');
+const { validateTextInput } = require('../src/texts/text.schema');
 
-test('validateBlankInput rejects body with only empty paragraphs', () => {
+test('validateTextInput rejects body with only empty paragraphs', () => {
   assert.throws(() => {
-    validateBlankInput({
+    validateTextInput({
       title: 'Test',
       signature: '',
       body: [
@@ -13,11 +13,11 @@ test('validateBlankInput rejects body with only empty paragraphs', () => {
         { type: 'paragraph', children: ['   '] },
       ],
     });
-  }, /Blank body must contain text or media/);
+  }, /Text body must contain text or media/);
 });
 
-test('validateBlankInput accepts body with media even without text', () => {
-  const parsed = validateBlankInput({
+test('validateTextInput accepts body with media even without text', () => {
+  const parsed = validateTextInput({
     title: 'Media',
     signature: '',
     body: [

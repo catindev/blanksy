@@ -11,11 +11,11 @@ const {
   errorHandler,
   redactUrlSecrets,
 } = require('./middleware/error-handler');
-const blanksRoutes = require('./blanks/blanks.routes');
+const textsRoutes = require('./texts/texts.routes');
 const reportsRoutes = require('./reports/reports.routes');
-const blanksService = require('./blanks/blanks.service');
+const textsService = require('./texts/texts.service');
 const { renderEditorPage } = require('./views/editor-page');
-const { renderBlankPage } = require('./views/blank-page');
+const { renderTextPage } = require('./views/text-page');
 
 function parseTrustProxy(value) {
   if (!value) {
@@ -74,7 +74,7 @@ function createApp() {
     response.json({ ok: true });
   });
 
-  app.use('/api', blanksRoutes);
+  app.use('/api', textsRoutes);
   app.use('/api', reportsRoutes);
 
   app.get('/', (request, response) => {
@@ -82,15 +82,15 @@ function createApp() {
   });
 
   app.get('/:path', asyncHandler(async (request, response) => {
-    const blank = await blanksService.getBlankForPage(request.params.path);
+    const text = await textsService.getTextForPage(request.params.path);
 
-    // Опубликованные blanks кешируются 60 секунд.
+    // Опубликованные тексты кешируются 60 секунд.
     // При наличии CDN — добавить s-maxage отдельно.
     response
       .type('html')
       .set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
-      .set('ETag', `"${blank.updatedAt}"`)
-      .send(renderBlankPage(blank));
+      .set('ETag', `"${text.updatedAt}"`)
+      .send(renderTextPage(text));
   }));
 
   app.use(notFoundHandler);

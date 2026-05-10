@@ -5,6 +5,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## [2.0.0] — 2026-05-10
+
+### Breaking
+
+- Product/domain rename: **Blanksy → Bytext**.
+- Main REST resource renamed: `blank` / `blanks` → `text` / `texts`.
+- API endpoints renamed from `/api/blanks` to `/api/texts`.
+- Database tables renamed in the initial schema: `blanks`, `blank_access_tokens`, `blank_versions`, `blank_reports`, `blank_owners` → `texts`, `text_access_tokens`, `text_versions`, `text_reports`, `text_owners`.
+- Frontend localStorage keys renamed from `blanksy:*` to `bytext:*`.
+- CSS/DOM class prefix renamed from `bs_` to `bt_`.
+
+### Changed
+
+- UI copy now speaks about texts: «Новый текст», «Опубликовать», «Ссылка доступа к тексту».
+- Backend modules moved from `src/blanks` to `src/texts`.
+- SSR page renderer renamed from `blank-page` to `text-page`.
+
 ## [1.4.1] — 2026-05-04
 
 ### Security
@@ -19,14 +36,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 
 - **SSO ownership теперь атомарна.**  
-  `createBlankWithAccessToken` принимает опциональный `userId` и создаёт запись  
-  в `blank_owners` внутри той же транзакции что и blank + access token.  
-  Раньше: два отдельных запроса — при падении второго blank существовал без владельца.
+  `createTextWithAccessToken` принимает опциональный `userId` и создаёт запись  
+  в `text_owners` внутри той же транзакции что и text + access token.  
+  Раньше: два отдельных запроса — при падении второго text существовал без владельца.
 
-- **`expires_at = null` для SSO-owned blanks.**  
-  Anonymous blank: `expires_at = now + 1 year` (как раньше).  
-  Blank созданный авторизованным пользователем: `expires_at = null` — не истекает.  
-  Раньше: все blanks истекали через год, включая owned.
+- **`expires_at = null` для SSO-owned texts.**  
+  Anonymous text: `expires_at = now + 1 year` (как раньше).  
+  Текст, созданный авторизованным пользователем: `expires_at = null` — не истекает.  
+  Раньше: все тексты истекали через год, включая owned.
 
 ### Infrastructure
 
@@ -48,15 +65,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added — SSO / Identity foundation
 
-Blanksy поддерживает работу **и без авторизации** (только access links),  
+Bytext поддерживает работу **и без авторизации** (только access links),  
 **и с SSO** (JWT от внешнего identity-сервиса). Оба режима совместимы.
 
 - `src/auth/auth.middleware.js` — верификация JWT (RS256/HS256). `optionalAuth` / `requireAuth`.
-- `migrations/003_blank_owners.sql` — `blank_owners (blank_id, user_id TEXT)`.
+- `migrations/003_text_owners.sql` — `text_owners (text_id, user_id TEXT)`.
 - `test/auth.middleware.test.js` — 9 unit-тестов.
-- `POST /api/blanks/:id/link` — привязка существующего blank к userId.
-- `GET /api/my/blanks` — список blanks текущего SSO-пользователя.
-- `POST /api/blanks` + `PATCH /api/blanks/:id` — принимают `optionalAuth`.
+- `POST /api/texts/:id/link` — привязка существующего text к userId.
+- `GET /api/my/texts` — список текстов текущего SSO-пользователя.
+- `POST /api/texts` + `PATCH /api/texts/:id` — принимают `optionalAuth`.
 
 ### Fixed (хвосты из ревью)
 - README: убрана строка «Автосохранение».
@@ -68,7 +85,7 @@ Blanksy поддерживает работу **и без авторизации
 ### Removed
 - `static/icons_2x.png` — мёртвый файл спрайта.
 - `cookie-parser` — зависимость и middleware.
-- `createBlank` (без токена) убран из `module.exports` репозитория.
+- `createText` (без токена) убран из `module.exports` репозитория.
 
 ---
 

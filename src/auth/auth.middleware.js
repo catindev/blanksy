@@ -1,16 +1,16 @@
 /**
  * auth.middleware.js — SSO JWT authentication
  *
- * Blanksy поддерживает работу и без авторизации, и с SSO.
+ * Bytext поддерживает работу и без авторизации, и с SSO.
  * SSO-сервис выдаёт JWT с payload: { sub, iss, aud, iat, exp }.
- * Blanksy принимает только sub — непрозрачный userId.
+ * Bytext принимает только sub — непрозрачный userId.
  *
  * Конфигурация через env:
  *   AUTH_JWT_PUBLIC_KEY  — публичный ключ RS256 (PEM) для production,
  *                          или shared secret для HS256 в development.
  *                          Если не задан — SSO отключён, userId всегда null.
  *   AUTH_JWT_ISSUER      — ожидаемый issuer (iss). Опционально.
- *   AUTH_JWT_AUDIENCE    — ожидаемый audience (aud). По умолчанию 'blanksy'.
+ *   AUTH_JWT_AUDIENCE    — ожидаемый audience (aud). По умолчанию 'bytext'.
  *
  * ── Algorithm policy ──────────────────────────────────────────────────────────
  * Production (NODE_ENV=production):
@@ -24,7 +24,7 @@
  *   без генерации RSA ключей.
  *
  * ── Token format disambiguation ──────────────────────────────────────────────
- * Blanksy access tokens: base64url без точек (43 символа).
+ * Bytext access tokens: base64url без точек (43 символа).
  * JWT: три части через точку — xxx.yyy.zzz.
  * Если Bearer-токен не содержит точек — это access token, не JWT.
  */
@@ -33,7 +33,7 @@ const crypto = require('node:crypto');
 const { AppError } = require('../middleware/error-handler');
 
 const IS_PRODUCTION  = process.env.NODE_ENV === 'production';
-const JWT_AUDIENCE   = process.env.AUTH_JWT_AUDIENCE || 'blanksy';
+const JWT_AUDIENCE   = process.env.AUTH_JWT_AUDIENCE || 'bytext';
 const ALLOWED_ALGORITHMS = IS_PRODUCTION ? ['RS256'] : ['RS256', 'HS256'];
 
 /**
@@ -122,7 +122,7 @@ function extractUserId(request) {
   if (!match) return null;
 
   const token = match[1];
-  if (!token.includes('.')) return null; // Blanksy access token, не JWT
+  if (!token.includes('.')) return null; // Bytext access token, не JWT
 
   try {
     const payload = verifyJwt(token);

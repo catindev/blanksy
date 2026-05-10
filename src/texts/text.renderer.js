@@ -55,7 +55,7 @@ function renderBlockNode(node) {
   }
 }
 
-function renderBlankBody(body) {
+function renderTextBody(body) {
   return body.map(renderBlockNode).join('\n');
 }
 
@@ -67,31 +67,31 @@ function formatHumanDate(input) {
   }).format(new Date(input));
 }
 
-function renderMetaLine(blank) {
-  const hasSignature = Boolean(blank.signature);
-  const hasDate = Boolean(blank.publishedAt);
+function renderMetaLine(text) {
+  const hasSignature = Boolean(text.signature);
+  const hasDate = Boolean(text.publishedAt);
   const separator = hasSignature && hasDate
-    ? '<span class="bs_meta_separator" aria-hidden="true">·</span>'
+    ? '<span class="bt_meta_separator" aria-hidden="true">·</span>'
     : '';
 
   return `
     <address>
-      ${hasSignature ? `<a rel="author">${escapeHtml(blank.signature)}</a>` : ''}
+      ${hasSignature ? `<a rel="author">${escapeHtml(text.signature)}</a>` : ''}
       ${separator}
-      ${hasDate ? `<time datetime="${escapeHtml(blank.publishedAt)}">${escapeHtml(formatHumanDate(blank.publishedAt))}</time>` : ''}
+      ${hasDate ? `<time datetime="${escapeHtml(text.publishedAt)}">${escapeHtml(formatHumanDate(text.publishedAt))}</time>` : ''}
     </address>
   `;
 }
 
-function renderBlankArticle(blank) {
+function renderTextArticle(text) {
   return `
-    <main class="bs_blank">
-      <header class="bs_blank_header" dir="auto">
-        <h1>${escapeHtml(blank.title)}</h1>
-        ${renderMetaLine(blank)}
+    <main class="bt_text">
+      <header class="bt_text_header" dir="auto">
+        <h1>${escapeHtml(text.title)}</h1>
+        ${renderMetaLine(text)}
       </header>
-      <article class="bs_blank_content">
-        ${renderBlankBody(blank.body)}
+      <article class="bt_text_content">
+        ${renderTextBody(text.body)}
       </article>
     </main>
   `;
@@ -100,7 +100,7 @@ function renderBlankArticle(blank) {
 module.exports = {
   escapeHtml,
   renderInlineNodes,
-  renderBlankBody,
-  renderBlankArticle,
+  renderTextBody,
+  renderTextArticle,
   formatHumanDate,
 };

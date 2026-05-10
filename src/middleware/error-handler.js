@@ -10,7 +10,7 @@ class AppError extends Error {
 function redactUrlSecrets(input) {
   const rawUrl = String(input || '');
   try {
-    const url = new URL(rawUrl, 'http://blanksy.local');
+    const url = new URL(rawUrl, 'http://bytext.local');
     if (url.searchParams.has('access')) {
       url.searchParams.set('access', '[redacted]');
     }

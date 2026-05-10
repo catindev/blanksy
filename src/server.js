@@ -3,7 +3,7 @@ require('dotenv').config();
 const { createApp } = require('./app');
 const { getPool, DEFAULT_DATABASE_URL } = require('./db/pool');
 const { runMigrations } = require('./db/migrations');
-const { cleanupExpiredBlanks } = require('./blanks/blanks.repository');
+const { cleanupExpiredTexts } = require('./texts/texts.repository');
 
 const PORT = Number(process.env.PORT || 3000);
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -23,16 +23,16 @@ function printDatabaseHelp(error) {
 
 async function start() {
   await runMigrations();
-  await cleanupExpiredBlanks();
+  await cleanupExpiredTexts();
   setInterval(() => {
-    cleanupExpiredBlanks().catch((error) => {
+    cleanupExpiredTexts().catch((error) => {
       console.error('Cleanup job failed', error);
     });
   }, DAY_IN_MS);
 
   const app = createApp();
   const server = app.listen(PORT, () => {
-    console.log(`Blanksy listening on http://localhost:${PORT}`);
+    console.log(`Bytext listening on http://localhost:${PORT}`);
   });
 
   async function shutdown(signal) {

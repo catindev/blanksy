@@ -28,7 +28,7 @@ const blockNodeSchema = z.union([
   z.object({ type: z.literal('list'), ordered: z.boolean(), items: z.array(z.array(inlineNodeSchema)) }),
 ]);
 
-const blankInputSchema = z.object({
+const textInputSchema = z.object({
   title: z.string().trim().min(1).max(200),
   signature: z.string().trim().max(100).optional().default(''),
   body: z.array(blockNodeSchema).min(1).max(300),
@@ -79,12 +79,12 @@ function validateBodyLimits(body) {
     }
   }
 
-  if (stats.images > 50) throw new AppError(400, 'Too many images in blank body');
-  if (stats.videos > 20) throw new AppError(400, 'Too many videos in blank body');
-  if (stats.links > 300) throw new AppError(400, 'Too many links in blank body');
+  if (stats.images > 50) throw new AppError(400, 'Too many images in text body');
+  if (stats.videos > 20) throw new AppError(400, 'Too many videos in text body');
+  if (stats.links > 300) throw new AppError(400, 'Too many links in text body');
 
   const jsonSize = Buffer.byteLength(JSON.stringify(body), 'utf8');
-  if (jsonSize > 128 * 1024) throw new AppError(400, 'Blank body exceeds 128 KB limit');
+  if (jsonSize > 128 * 1024) throw new AppError(400, 'Text body exceeds 128 KB limit');
 }
 
 function collectInlineText(nodes) {
@@ -104,9 +104,9 @@ function hasMeaningfulBodyContent(body) {
   });
 }
 
-function validateBlankInput(payload) {
-  const parsed = blankInputSchema.safeParse(payload);
-  if (!parsed.success) throw new AppError(400, 'Invalid blank payload', parsed.error.flatten());
+function validateTextInput(payload) {
+  const parsed = textInputSchema.safeParse(payload);
+  if (!parsed.success) throw new AppError(400, 'Invalid text payload', parsed.error.flatten());
 
   const normalized = {
     title: parsed.data.title.trim(),
@@ -117,10 +117,10 @@ function validateBlankInput(payload) {
   validateBodyLimits(normalized.body);
 
   if (!hasMeaningfulBodyContent(normalized.body)) {
-    throw new AppError(400, 'Blank body must contain text or media');
+    throw new AppError(400, 'Text body must contain text or media');
   }
 
   return normalized;
 }
 
-module.exports = { validateBlankInput };
+module.exports = { validateTextInput };

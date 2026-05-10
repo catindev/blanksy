@@ -1,6 +1,6 @@
 const crypto = require('node:crypto');
 
-const blanksRepository = require('../blanks/blanks.repository');
+const textsRepository = require('../texts/texts.repository');
 const { AppError } = require('../middleware/error-handler');
 
 const REPORT_REASONS = new Set([
@@ -21,18 +21,18 @@ function hashIpAddress(ipAddress) {
   return crypto.createHash('sha256').update(ipAddress).digest('hex');
 }
 
-async function createReport(blankId, { reason, comment }, requestMeta) {
+async function createReport(textId, { reason, comment }, requestMeta) {
   if (!REPORT_REASONS.has(reason)) {
     throw new AppError(400, 'Invalid report reason');
   }
 
-  const blank = await blanksRepository.getBlankById(blankId);
-  if (!blank) {
-    throw new AppError(404, 'Blank not found');
+  const text = await textsRepository.getTextById(textId);
+  if (!text) {
+    throw new AppError(404, 'Text not found');
   }
 
-  await blanksRepository.createReport({
-    blankId,
+  await textsRepository.createReport({
+    textId,
     reason,
     comment: comment || '',
     ipHash: hashIpAddress(requestMeta.ip),

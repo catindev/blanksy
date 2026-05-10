@@ -1,35 +1,35 @@
 (function bootstrapAccess(global) {
-  const KNOWN_BLANKS_KEY = 'blanksy:known_blanks';
+  const KNOWN_TEXTS_KEY = 'bytext:known_texts';
 
-  function accessKey(blankId) {
-    return `blanksy:access:${blankId}`;
+  function accessKey(textId) {
+    return `bytext:access:${textId}`;
   }
 
-  function getAccessToken(blankId) {
-    return localStorage.getItem(accessKey(blankId));
+  function getAccessToken(textId) {
+    return localStorage.getItem(accessKey(textId));
   }
 
-  function saveAccessToken(blankId, accessToken) {
-    localStorage.setItem(accessKey(blankId), accessToken);
+  function saveAccessToken(textId, accessToken) {
+    localStorage.setItem(accessKey(textId), accessToken);
   }
 
-  function removeAccessToken(blankId) {
-    localStorage.removeItem(accessKey(blankId));
+  function removeAccessToken(textId) {
+    localStorage.removeItem(accessKey(textId));
   }
 
-  function rememberKnownBlank(blank) {
-    const current = JSON.parse(localStorage.getItem(KNOWN_BLANKS_KEY) || '[]');
-    const filtered = current.filter((item) => item.blankId !== blank.blankId);
-    filtered.unshift(blank);
-    localStorage.setItem(KNOWN_BLANKS_KEY, JSON.stringify(filtered.slice(0, 50)));
+  function rememberKnownText(text) {
+    const current = JSON.parse(localStorage.getItem(KNOWN_TEXTS_KEY) || '[]');
+    const filtered = current.filter((item) => item.textId !== text.textId);
+    filtered.unshift(text);
+    localStorage.setItem(KNOWN_TEXTS_KEY, JSON.stringify(filtered.slice(0, 50)));
   }
 
   function buildAccessUrl(path, accessToken) {
     return `${window.location.origin}/${path}?access=${encodeURIComponent(accessToken)}`;
   }
 
-  async function bootstrapForBlank(blank) {
-    if (!blank) {
+  async function bootstrapForText(text) {
+    if (!text) {
       return null;
     }
 
@@ -37,46 +37,46 @@
     const queryAccessToken = currentUrl.searchParams.get('access');
 
     if (queryAccessToken) {
-      const result = await global.BlanksyApi.verifyAccess(blank.path, queryAccessToken);
-      saveAccessToken(result.blankId, queryAccessToken);
-      rememberKnownBlank({
-        blankId: result.blankId,
-        path: blank.path,
-        title: blank.title,
-        updatedAt: blank.updatedAt,
+      const result = await global.BytextApi.verifyAccess(text.path, queryAccessToken);
+      saveAccessToken(result.textId, queryAccessToken);
+      rememberKnownText({
+        textId: result.textId,
+        path: text.path,
+        title: text.title,
+        updatedAt: text.updatedAt,
       });
       currentUrl.searchParams.delete('access');
       const normalized = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
       window.history.replaceState({}, '', normalized || currentUrl.pathname);
       return {
         accessToken: queryAccessToken,
-        accessUrl: buildAccessUrl(blank.path, queryAccessToken),
+        accessUrl: buildAccessUrl(text.path, queryAccessToken),
       };
     }
 
-    const storedAccessToken = getAccessToken(blank.id);
+    const storedAccessToken = getAccessToken(text.id);
     if (!storedAccessToken) {
       return null;
     }
 
     try {
-      await global.BlanksyApi.verifyAccess(blank.path, storedAccessToken);
+      await global.BytextApi.verifyAccess(text.path, storedAccessToken);
       return {
         accessToken: storedAccessToken,
-        accessUrl: buildAccessUrl(blank.path, storedAccessToken),
+        accessUrl: buildAccessUrl(text.path, storedAccessToken),
       };
     } catch {
-      removeAccessToken(blank.id);
+      removeAccessToken(text.id);
       return null;
     }
   }
 
-  global.BlanksyAccess = {
+  global.BytextAccess = {
     getAccessToken,
     saveAccessToken,
     removeAccessToken,
-    rememberKnownBlank,
+    rememberKnownText,
     buildAccessUrl,
-    bootstrapForBlank,
+    bootstrapForText,
   };
 }(window));

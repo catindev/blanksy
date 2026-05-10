@@ -70,41 +70,41 @@
     }).format(new Date(input));
   }
 
-  function renderMetaLine(blank) {
-    const hasSignature = Boolean(blank.signature);
-    const hasDate = Boolean(blank.publishedAt || blank.updatedAt);
+  function renderMetaLine(text) {
+    const hasSignature = Boolean(text.signature);
+    const hasDate = Boolean(text.publishedAt || text.updatedAt);
     const separator = hasSignature && hasDate
-      ? '<span class="bs_meta_separator" aria-hidden="true">·</span>'
+      ? '<span class="bt_meta_separator" aria-hidden="true">·</span>'
       : '';
 
     return `
       <address>
-        ${hasSignature ? `<a rel="author">${escapeHtml(blank.signature || '')}</a>` : ''}
+        ${hasSignature ? `<a rel="author">${escapeHtml(text.signature || '')}</a>` : ''}
         ${separator}
-        ${hasDate ? `<time datetime="${escapeHtml(blank.publishedAt || blank.updatedAt || '')}">${escapeHtml(formatHumanDate(blank.publishedAt || blank.updatedAt || Date.now()))}</time>` : ''}
+        ${hasDate ? `<time datetime="${escapeHtml(text.publishedAt || text.updatedAt || '')}">${escapeHtml(formatHumanDate(text.publishedAt || text.updatedAt || Date.now()))}</time>` : ''}
       </address>
     `;
   }
 
-  function renderBlank(blank) {
+  function renderText(text) {
     return `
-      <main class="bs_blank">
-        <header class="bs_blank_header" dir="auto">
-          <h1>${escapeHtml(blank.title || '')}</h1>
-          ${renderMetaLine(blank)}
+      <main class="bt_text">
+        <header class="bt_text_header" dir="auto">
+          <h1>${escapeHtml(text.title || '')}</h1>
+          ${renderMetaLine(text)}
         </header>
-        <article class="bs_blank_content">
-          ${renderBody(blank.body || [])}
+        <article class="bt_text_content">
+          ${renderBody(text.body || [])}
         </article>
       </main>
     `;
   }
 
-  global.BlanksyRender = {
+  global.BytextRender = {
     escapeHtml,
     renderInlineNodes,
     renderBody,
-    renderBlank,
+    renderText,
     formatHumanDate,
   };
 }(window));

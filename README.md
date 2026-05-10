@@ -1,4 +1,4 @@
-# Blanksy
+# Bytext
 
 Минималистичный сервис для публикации текстовых заметок и статей.  
 Открыл страницу — сразу пишешь. Нажал «Опубликовать» — получил публичную ссылку и ссылку доступа для редактирования.
@@ -54,9 +54,9 @@ npx playwright install chromium webkit
 | Rich-text редактор | Bold, italic, ссылки, H2, H3, цитата |
 | Toolbar active/mixed | Кнопки отражают текущий формат; `mixed` при частичном выделении |
 | Медиа | Изображения по URL, YouTube, VK Video, RuTube |
-| Публикация | `POST /api/blanks` → public link + access link |
+| Публикация | `POST /api/texts` → public link + access link |
 | Редактирование | Access link в localStorage; `?access=TOKEN` с любого устройства |
-| SSO (опционально) | JWT от внешнего identity-сервиса — привязка blanks к userId |
+| SSO (опционально) | JWT от внешнего identity-сервиса — привязка текстов к userId |
 | SSR | Open Graph / Twitter Card мета-теги |
 | Безопасность | `helmet` + CSP, токены как SHA-256 hash, rate limiting |
 
@@ -64,28 +64,28 @@ npx playwright install chromium webkit
 
 ## SSO / Identity
 
-Blanksy работает **и без авторизации, и с SSO** одновременно.
+Bytext работает **и без авторизации, и с SSO** одновременно.
 
 Без авторизации — всё как раньше: access link, localStorage.
 
 С SSO — передай JWT в `Authorization: Bearer {jwt}`:
-- `POST /api/blanks` — blank автоматически привязывается к `userId` из `sub`
-- `GET /api/my/blanks` — список всех blanks пользователя
-- `POST /api/blanks/:id/link` — привязать существующий blank (нужен access token)
+- `POST /api/texts` — text автоматически привязывается к `userId` из `sub`
+- `GET /api/my/texts` — список всех текстов пользователя
+- `POST /api/texts/:id/link` — привязать существующий text (нужен access token)
 
 ### Настройка SSO
 
 ```env
 AUTH_JWT_PUBLIC_KEY=<PEM публичного ключа RS256>
 AUTH_JWT_ISSUER=https://id.yourdomain.ru
-AUTH_JWT_AUDIENCE=blanksy
+AUTH_JWT_AUDIENCE=bytext
 ```
 
-Если переменные не заданы — SSO отключён, Blanksy работает только с access links.
+Если переменные не заданы — SSO отключён, Bytext работает только с access links.
 
 **JWT payload:**
 ```json
-{ "sub": "usr_abc123", "iss": "https://id.yourdomain.ru", "aud": "blanksy", "exp": 0 }
+{ "sub": "usr_abc123", "iss": "https://id.yourdomain.ru", "aud": "bytext", "exp": 0 }
 ```
 
 Подробнее: `COMPATIBILITY.md`.
@@ -97,8 +97,8 @@ AUTH_JWT_AUDIENCE=blanksy
 1. Запись в `BLOCK_EDITORS` (`editor.js`, секция 1): `renderEditable`, `serialize`, `resolveTarget`
 2. Кнопка в `renderBlockToolbar()` (`toolbars.js`): `data-insert="mytype"`
 3. Обработчик клика в block toolbar (`editor.js`, секция 3)
-4. Read-only рендерер в `render.js` и `blank.renderer.js`
-5. Тип в `blank.schema.js`
+4. Read-only рендерер в `render.js` и `text.renderer.js`
+5. Тип в `text.schema.js`
 6. E2e-тест
 
 ---
@@ -107,7 +107,7 @@ AUTH_JWT_AUDIENCE=blanksy
 
 | Переменная | Значение |
 |---|---|
-| `PUBLIC_BASE_URL` | `https://blanksy.example.com` |
+| `PUBLIC_BASE_URL` | `https://bytext.example.com` |
 | `DATABASE_URL` | Production PostgreSQL |
 | `NODE_ENV` | `production` |
 | `TRUST_PROXY` | `1` за одним reverse proxy |
@@ -127,8 +127,8 @@ npm ci && npm test
 npm run test:e2e
 
 git add .
-git commit -m "Release v1.4.0"
-git tag -a v1.4.0 -m "Blanksy 1.4.0"
+git commit -m "Release v2.0.0"
+git tag -a v2.0.0 -m "Bytext 2.0.0"
 git push origin main --tags
-gh release create v1.4.0 --title "Blanksy 1.4.0" --notes-file CHANGELOG.md
+gh release create v2.0.0 --title "Bytext 2.0.0" --notes-file CHANGELOG.md
 ```

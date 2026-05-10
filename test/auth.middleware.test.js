@@ -27,7 +27,7 @@ test('extractUserId returns null when AUTH_JWT_PUBLIC_KEY is not set', () => {
   assert.equal(extractUserId(req), null);
 });
 
-test('extractUserId returns null for Blanksy access token (no dots)', () => {
+test('extractUserId returns null for Bytext access token (no dots)', () => {
   process.env.AUTH_JWT_PUBLIC_KEY = 'test-secret';
   const { extractUserId } = loadMiddleware();
   const req = { get: () => 'Bearer abc123def456ghi789jkl012mno345pqr678stu' };
@@ -45,13 +45,13 @@ test('extractUserId returns sub from valid HS256 JWT', () => {
   const secret = 'test-secret-key-for-unit-tests';
   process.env.AUTH_JWT_PUBLIC_KEY  = secret;
   process.env.AUTH_JWT_ISSUER      = '';
-  process.env.AUTH_JWT_AUDIENCE    = 'blanksy';
+  process.env.AUTH_JWT_AUDIENCE    = 'bytext';
 
   const now = Math.floor(Date.now() / 1000);
   const jwt = makeJwt({
     sub: 'usr_test123',
     iss: 'https://id.example.com',
-    aud: 'blanksy',
+    aud: 'bytext',
     iat: now,
     exp: now + 3600,
   }, secret);
@@ -64,12 +64,12 @@ test('extractUserId returns sub from valid HS256 JWT', () => {
 test('extractUserId returns null for expired JWT', () => {
   const secret = 'test-secret-key-for-unit-tests';
   process.env.AUTH_JWT_PUBLIC_KEY = secret;
-  process.env.AUTH_JWT_AUDIENCE   = 'blanksy';
+  process.env.AUTH_JWT_AUDIENCE   = 'bytext';
 
   const now = Math.floor(Date.now() / 1000);
   const jwt = makeJwt({
     sub: 'usr_test123',
-    aud: 'blanksy',
+    aud: 'bytext',
     iat: now - 7200,
     exp: now - 3600,  // истёк час назад
   }, secret);
@@ -82,7 +82,7 @@ test('extractUserId returns null for expired JWT', () => {
 test('extractUserId returns null for wrong audience', () => {
   const secret = 'test-secret-key-for-unit-tests';
   process.env.AUTH_JWT_PUBLIC_KEY = secret;
-  process.env.AUTH_JWT_AUDIENCE   = 'blanksy';
+  process.env.AUTH_JWT_AUDIENCE   = 'bytext';
 
   const now = Math.floor(Date.now() / 1000);
   const jwt = makeJwt({
@@ -100,19 +100,19 @@ test('extractUserId returns null for wrong audience', () => {
 test('extractUserId returns null for tampered JWT', () => {
   const secret = 'test-secret-key-for-unit-tests';
   process.env.AUTH_JWT_PUBLIC_KEY = secret;
-  process.env.AUTH_JWT_AUDIENCE   = 'blanksy';
+  process.env.AUTH_JWT_AUDIENCE   = 'bytext';
 
   const now = Math.floor(Date.now() / 1000);
   const jwt = makeJwt({
     sub: 'usr_test123',
-    aud: 'blanksy',
+    aud: 'bytext',
     iat: now,
     exp: now + 3600,
   }, secret);
 
   // Меняем payload
   const parts     = jwt.split('.');
-  const malicious = Buffer.from(JSON.stringify({ sub: 'usr_hacker', aud: 'blanksy', exp: now + 3600 })).toString('base64url');
+  const malicious = Buffer.from(JSON.stringify({ sub: 'usr_hacker', aud: 'bytext', exp: now + 3600 })).toString('base64url');
   const tampered  = `${parts[0]}.${malicious}.${parts[2]}`;
 
   const { extractUserId } = loadMiddleware();
@@ -123,10 +123,10 @@ test('extractUserId returns null for tampered JWT', () => {
 test('optionalAuth sets userId and calls next', (_, done) => {
   const secret = 'test-secret-key-for-unit-tests';
   process.env.AUTH_JWT_PUBLIC_KEY = secret;
-  process.env.AUTH_JWT_AUDIENCE   = 'blanksy';
+  process.env.AUTH_JWT_AUDIENCE   = 'bytext';
 
   const now = Math.floor(Date.now() / 1000);
-  const jwt = makeJwt({ sub: 'usr_abc', aud: 'blanksy', iat: now, exp: now + 3600 }, secret);
+  const jwt = makeJwt({ sub: 'usr_abc', aud: 'bytext', iat: now, exp: now + 3600 }, secret);
 
   const { optionalAuth } = loadMiddleware();
   const req = { get: () => `Bearer ${jwt}` };
@@ -164,10 +164,10 @@ test('rejects HS256 in production even with valid signature', (_, done) => {
   const originalNodeEnv = process.env.NODE_ENV;
   process.env.NODE_ENV       = 'production';
   process.env.AUTH_JWT_PUBLIC_KEY = 'secret';
-  process.env.AUTH_JWT_AUDIENCE   = 'blanksy';
+  process.env.AUTH_JWT_AUDIENCE   = 'bytext';
 
   const now = Math.floor(Date.now() / 1000);
-  const jwt = makeJwt({ sub: 'usr_evil', aud: 'blanksy', iat: now, exp: now + 3600 }, 'secret', 'HS256');
+  const jwt = makeJwt({ sub: 'usr_evil', aud: 'bytext', iat: now, exp: now + 3600 }, 'secret', 'HS256');
 
   // Reload to pick up NODE_ENV=production
   delete require.cache[require.resolve('../src/auth/auth.middleware')];

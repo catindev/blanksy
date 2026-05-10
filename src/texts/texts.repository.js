@@ -17,7 +17,7 @@ async function withTransaction(callback) {
   }
 }
 
-function mapBlankRow(row) {
+function mapTextRow(row) {
   if (!row) {
     return null;
   }
@@ -42,16 +42,16 @@ function mapBlankRow(row) {
 async function isPathTaken(path) {
   const pool = getPool();
   const result = await pool.query(
-    'SELECT 1 FROM blanks WHERE path = $1 LIMIT 1',
+    'SELECT 1 FROM texts WHERE path = $1 LIMIT 1',
     [path],
   );
   return result.rowCount > 0;
 }
 
-async function createBlank({ path, title, signature, body, description, coverImageUrl, expiresAt }) {
+async function createText({ path, title, signature, body, description, coverImageUrl, expiresAt }) {
   const pool = getPool();
   const result = await pool.query(`
-    INSERT INTO blanks (path, title, signature, body, description, cover_image_url, expires_at)
+    INSERT INTO texts (path, title, signature, body, description, cover_image_url, expires_at)
     VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7)
     RETURNING *
   `, [
@@ -64,78 +64,78 @@ async function createBlank({ path, title, signature, body, description, coverIma
     expiresAt,
   ]);
 
-  return mapBlankRow(result.rows[0]);
+  return mapTextRow(result.rows[0]);
 }
 
 
-async function createBlankWithAccessToken(blankInput, accessTokenHash, label = 'owner') {
+async function createTextWithAccessToken(textInput, accessTokenHash, label = 'owner') {
   return withTransaction(async (client) => {
     const result = await client.query(`
-      INSERT INTO blanks (path, title, signature, body, description, cover_image_url, expires_at)
+      INSERT INTO texts (path, title, signature, body, description, cover_image_url, expires_at)
       VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7)
       RETURNING *
     `, [
-      blankInput.path,
-      blankInput.title,
-      blankInput.signature || null,
-      JSON.stringify(blankInput.body),
-      blankInput.description || null,
-      blankInput.coverImageUrl || null,
-      blankInput.expiresAt,
+      textInput.path,
+      textInput.title,
+      textInput.signature || null,
+      JSON.stringify(textInput.body),
+      textInput.description || null,
+      textInput.coverImageUrl || null,
+      textInput.expiresAt,
     ]);
 
-    const blank = mapBlankRow(result.rows[0]);
+    const text = mapTextRow(result.rows[0]);
     await client.query(`
-      INSERT INTO blank_access_tokens (blank_id, token_hash, label)
+      INSERT INTO text_access_tokens (text_id, token_hash, label)
       VALUES ($1, $2, $3)
-    `, [blank.id, accessTokenHash, label]);
+    `, [text.id, accessTokenHash, label]);
 
     // Если передан userId (SSO) — привязываем владельца атомарно в той же транзакции.
-    // Это гарантирует что blank никогда не создаётся без владельца при авторизованном запросе.
-    if (blankInput.userId) {
+    // Это гарантирует что text никогда не создаётся без владельца при авторизованном запросе.
+    if (textInput.userId) {
       await client.query(`
-        INSERT INTO blank_owners (blank_id, user_id)
+        INSERT INTO text_owners (text_id, user_id)
         VALUES ($1, $2)
         ON CONFLICT DO NOTHING
-      `, [blank.id, blankInput.userId]);
+      `, [text.id, textInput.userId]);
     }
 
-    return blank;
+    return text;
   });
 }
 
-async function getBlankByPath(path) {
+async function getTextByPath(path) {
   const pool = getPool();
   const result = await pool.query(`
     SELECT *
-    FROM blanks
+    FROM texts
     WHERE path = $1
       AND deleted_at IS NULL
       AND status = 'published'
     LIMIT 1
   `, [path]);
 
-  return mapBlankRow(result.rows[0]);
+  return mapTextRow(result.rows[0]);
 }
 
-async function getBlankById(id) {
+async function getTextById(id) {
   const pool = getPool();
   const result = await pool.query(`
     SELECT *
-    FROM blanks
+    FROM texts
     WHERE id = $1
       AND deleted_at IS NULL
       AND status = 'published'
     LIMIT 1
   `, [id]);
 
-  return mapBlankRow(result.rows[0]);
+  return mapTextRow(result.rows[0]);
 }
 
-async function updateBlank(id, { title, signature, body, description, coverImageUrl }) {
+async function updateText(id, { title, signature, body, description, coverImageUrl }) {
   const pool = getPool();
   const result = await pool.query(`
-    UPDATE blanks
+    UPDATE texts
     SET title = $2,
         signature = $3,
         body = $4::jsonb,
@@ -153,37 +153,37 @@ async function updateBlank(id, { title, signature, body, description, coverImage
     coverImageUrl || null,
   ]);
 
-  return mapBlankRow(result.rows[0]);
+  return mapTextRow(result.rows[0]);
 }
 
-async function createBlankVersion(blank) {
+async function createTextVersion(text) {
   const pool = getPool();
   await pool.query(`
-    INSERT INTO blank_versions (blank_id, title, signature, body)
+    INSERT INTO text_versions (text_id, title, signature, body)
     VALUES ($1, $2, $3, $4::jsonb)
   `, [
-    blank.id,
-    blank.title,
-    blank.signature || null,
-    JSON.stringify(blank.body),
+    text.id,
+    text.title,
+    text.signature || null,
+    JSON.stringify(text.body),
   ]);
 }
 
 
-async function updateBlankWithVersion(existingBlank, nextBlank) {
+async function updateTextWithVersion(existingText, nextText) {
   return withTransaction(async (client) => {
     await client.query(`
-      INSERT INTO blank_versions (blank_id, title, signature, body)
+      INSERT INTO text_versions (text_id, title, signature, body)
       VALUES ($1, $2, $3, $4::jsonb)
     `, [
-      existingBlank.id,
-      existingBlank.title,
-      existingBlank.signature || null,
-      JSON.stringify(existingBlank.body),
+      existingText.id,
+      existingText.title,
+      existingText.signature || null,
+      JSON.stringify(existingText.body),
     ]);
 
     const result = await client.query(`
-      UPDATE blanks
+      UPDATE texts
       SET title = $2,
           signature = $3,
           body = $4::jsonb,
@@ -193,60 +193,60 @@ async function updateBlankWithVersion(existingBlank, nextBlank) {
       WHERE id = $1
       RETURNING *
     `, [
-      existingBlank.id,
-      nextBlank.title,
-      nextBlank.signature || null,
-      JSON.stringify(nextBlank.body),
-      nextBlank.description || null,
-      nextBlank.coverImageUrl || null,
+      existingText.id,
+      nextText.title,
+      nextText.signature || null,
+      JSON.stringify(nextText.body),
+      nextText.description || null,
+      nextText.coverImageUrl || null,
     ]);
 
-    return mapBlankRow(result.rows[0]);
+    return mapTextRow(result.rows[0]);
   });
 }
 
-async function createAccessToken(blankId, tokenHash, label = null) {
+async function createAccessToken(textId, tokenHash, label = null) {
   const pool = getPool();
   const result = await pool.query(`
-    INSERT INTO blank_access_tokens (blank_id, token_hash, label)
+    INSERT INTO text_access_tokens (text_id, token_hash, label)
     VALUES ($1, $2, $3)
     RETURNING *
-  `, [blankId, tokenHash, label]);
+  `, [textId, tokenHash, label]);
 
   return result.rows[0];
 }
 
-async function createAccessTokenWithLimit(blankId, tokenHash, label, maxActiveTokens) {
+async function createAccessTokenWithLimit(textId, tokenHash, label, maxActiveTokens) {
   return withTransaction(async (client) => {
-    await client.query('SELECT id FROM blanks WHERE id = $1 FOR UPDATE', [blankId]);
+    await client.query('SELECT id FROM texts WHERE id = $1 FOR UPDATE', [textId]);
 
     const countResult = await client.query(`
       SELECT COUNT(*)::int AS active_count
-      FROM blank_access_tokens
-      WHERE blank_id = $1
+      FROM text_access_tokens
+      WHERE text_id = $1
         AND revoked_at IS NULL
-    `, [blankId]);
+    `, [textId]);
 
     if (countResult.rows[0].active_count >= maxActiveTokens) {
       return null;
     }
 
     const result = await client.query(`
-      INSERT INTO blank_access_tokens (blank_id, token_hash, label)
+      INSERT INTO text_access_tokens (text_id, token_hash, label)
       VALUES ($1, $2, $3)
       RETURNING *
-    `, [blankId, tokenHash, label || null]);
+    `, [textId, tokenHash, label || null]);
 
     return result.rows[0];
   });
 }
 
-async function getBlankByPathAndTokenHash(path, tokenHash) {
+async function getTextByPathAndTokenHash(path, tokenHash) {
   const pool = getPool();
   const result = await pool.query(`
     SELECT b.id, b.path, t.id AS access_token_id
-    FROM blanks b
-    JOIN blank_access_tokens t ON t.blank_id = b.id
+    FROM texts b
+    JOIN text_access_tokens t ON t.text_id = b.id
     WHERE b.path = $1
       AND b.deleted_at IS NULL
       AND b.status = 'published'
@@ -258,16 +258,16 @@ async function getBlankByPathAndTokenHash(path, tokenHash) {
   return result.rows[0] || null;
 }
 
-async function getAccessTokenByBlankIdAndHash(blankId, tokenHash) {
+async function getAccessTokenByTextIdAndHash(textId, tokenHash) {
   const pool = getPool();
   const result = await pool.query(`
     SELECT *
-    FROM blank_access_tokens
-    WHERE blank_id = $1
+    FROM text_access_tokens
+    WHERE text_id = $1
       AND token_hash = $2
       AND revoked_at IS NULL
     LIMIT 1
-  `, [blankId, tokenHash]);
+  `, [textId, tokenHash]);
 
   return result.rows[0] || null;
 }
@@ -275,24 +275,24 @@ async function getAccessTokenByBlankIdAndHash(blankId, tokenHash) {
 async function touchAccessToken(accessTokenId) {
   const pool = getPool();
   await pool.query(`
-    UPDATE blank_access_tokens
+    UPDATE text_access_tokens
     SET last_used_at = now()
     WHERE id = $1
   `, [accessTokenId]);
 }
 
-async function createReport({ blankId, reason, comment, ipHash, userAgent }) {
+async function createReport({ textId, reason, comment, ipHash, userAgent }) {
   const pool = getPool();
   await pool.query(`
-    INSERT INTO blank_reports (blank_id, reason, comment, ip_hash, user_agent)
+    INSERT INTO text_reports (text_id, reason, comment, ip_hash, user_agent)
     VALUES ($1, $2, $3, $4, $5)
-  `, [blankId, reason, comment || null, ipHash || null, userAgent || null]);
+  `, [textId, reason, comment || null, ipHash || null, userAgent || null]);
 }
 
-async function cleanupExpiredBlanks() {
+async function cleanupExpiredTexts() {
   const pool = getPool();
   await pool.query(`
-    UPDATE blanks
+    UPDATE texts
     SET status = 'deleted',
         deleted_at = now()
     WHERE expires_at < now()
@@ -301,57 +301,57 @@ async function cleanupExpiredBlanks() {
 }
 
 module.exports = {
-  linkBlankToOwner,
-  getBlanksByOwner,
-  isBlankOwnedByUser,
+  linkTextToOwner,
+  getTextsByOwner,
+  isTextOwnedByUser,
   isPathTaken,
-  createBlankWithAccessToken,
-  updateBlankWithVersion,
-  getBlankByPath,
-  getBlankById,
-  updateBlank,
-  createBlankVersion,
+  createTextWithAccessToken,
+  updateTextWithVersion,
+  getTextByPath,
+  getTextById,
+  updateText,
+  createTextVersion,
   createAccessToken,
   createAccessTokenWithLimit,
-  getBlankByPathAndTokenHash,
-  getAccessTokenByBlankIdAndHash,
+  getTextByPathAndTokenHash,
+  getAccessTokenByTextIdAndHash,
   touchAccessToken,
   createReport,
-  cleanupExpiredBlanks,
+  cleanupExpiredTexts,
 };
 
-// ── SSO / blank ownership ────────────────────────────────────────────────────
+// ── SSO / text ownership ────────────────────────────────────────────────────
 
-async function linkBlankToOwner(blankId, userId) {
+async function linkTextToOwner(textId, userId) {
   const pool = getPool();
   await pool.query(`
-    INSERT INTO blank_owners (blank_id, user_id)
+    INSERT INTO text_owners (text_id, user_id)
     VALUES ($1, $2)
     ON CONFLICT DO NOTHING
-  `, [blankId, userId]);
+  `, [textId, userId]);
 }
 
-async function getBlanksByOwner(userId) {
+async function getTextsByOwner(userId) {
   const pool = getPool();
   const result = await pool.query(`
     SELECT b.*
-    FROM blanks b
-    JOIN blank_owners o ON o.blank_id = b.id
+    FROM texts b
+    JOIN text_owners o ON o.text_id = b.id
     WHERE o.user_id = $1
       AND b.deleted_at IS NULL
       AND b.status = 'published'
     ORDER BY b.updated_at DESC
     LIMIT 100
   `, [userId]);
-  return result.rows.map(mapBlankRow);
+  return result.rows.map(mapTextRow);
 }
 
-async function isBlankOwnedByUser(blankId, userId) {
+async function isTextOwnedByUser(textId, userId) {
   const pool = getPool();
   const result = await pool.query(`
-    SELECT 1 FROM blank_owners
-    WHERE blank_id = $1 AND user_id = $2
+    SELECT 1 FROM text_owners
+    WHERE text_id = $1 AND user_id = $2
     LIMIT 1
-  `, [blankId, userId]);
+  `, [textId, userId]);
   return result.rowCount > 0;
 }

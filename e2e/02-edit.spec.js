@@ -4,14 +4,14 @@
  */
 
 const { test, expect } = require('@playwright/test');
-const { fillBlank, publishBlank } = require('./helpers');
+const { setEditorContent, publishText } = require('./helpers');
 
-test.describe('Edit a published blank via access link', () => {
+test.describe('Edit a published text via access link', () => {
   test('access link enables the Edit button', async ({ page }) => {
     // Create and publish
     await page.goto('/');
-    await fillBlank(page, { title: 'Редактируемый blank', body: 'Исходный текст' });
-    const { accessUrl } = await publishBlank(page);
+    await setEditorContent(page, { title: 'Редактируемый text', body: 'Исходный текст' });
+    const { accessUrl } = await publishText(page);
 
     // Open access link in same page (simulates copy-paste into browser)
     await page.goto(accessUrl);
@@ -20,26 +20,26 @@ test.describe('Edit a published blank via access link', () => {
 
   test('clicking Edit switches to editor mode with Save button', async ({ page }) => {
     await page.goto('/');
-    await fillBlank(page, { title: 'Статья для правки', body: 'Начальное содержимое' });
-    const { accessUrl } = await publishBlank(page);
+    await setEditorContent(page, { title: 'Статья для правки', body: 'Начальное содержимое' });
+    const { accessUrl } = await publishText(page);
 
     await page.goto(accessUrl);
     await page.getByRole('button', { name: 'Редактировать' }).click();
     await expect(page.getByRole('button', { name: 'Сохранить' })).toBeVisible();
-    await expect(page.locator('#bs_editor_root')).toBeVisible();
+    await expect(page.locator('#bt_editor_root')).toBeVisible();
   });
 
   test('edits are saved and visible on the public page', async ({ page }) => {
     await page.goto('/');
-    await fillBlank(page, { title: 'Статья v1', body: 'Старый текст' });
-    const { publicUrl, accessUrl } = await publishBlank(page);
+    await setEditorContent(page, { title: 'Статья v1', body: 'Старый текст' });
+    const { publicUrl, accessUrl } = await publishText(page);
 
     // Edit
     await page.goto(accessUrl);
     await page.getByRole('button', { name: 'Редактировать' }).click();
 
     // Change the body text — click last paragraph and add text
-    const editor = page.locator('#bs_editor_root');
+    const editor = page.locator('#bt_editor_root');
     await editor.locator('p').last().click();
     await page.keyboard.press('End');
     await page.keyboard.type(' — обновлено');
